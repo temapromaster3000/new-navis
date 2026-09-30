@@ -1,0 +1,39 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# Release script output
+artifacts/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+*.userprefs
+*.sln.docstates
+
+# .NET
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+*.nupkg
+*.snupkg
+
+# Navisworks-specific: versioned API DLLs must not be committed
+Autodesk.Navisworks*.dll
+
+# opencode
+.opencode/
+opencode.json
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Misc
+*.tmp
+*.temp

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>NavisElevation.Core</AssemblyName>
+    <RootNamespace>NavisElevation.Core</RootNamespace>
+    <Description>Platform-independent logic for the Navis Elevation plugin: elevation formatting, grid level lookup, project offset.</Description>
+  </PropertyGroup>
+
+</Project>

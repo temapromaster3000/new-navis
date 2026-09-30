@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Navisworks loads the plugin assembly itself, so the shipped file is NavisElevation.dll. -->
+    <AssemblyName>NavisElevation</AssemblyName>
+    <RootNamespace>NavisElevation.Navis</RootNamespace>
+    <Description>Navisworks Manage 2021 plugin that reports the elevation of the element under the cursor.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Private=false is mandatory: Navisworks resolves these assemblies from its own
+      install folder at runtime. Copying them next to the plugin either breaks loading
+      or silently pins a second, conflicting copy of the API in the process.
+    -->
+    <Reference Include="Autodesk.Navisworks.Api">
+      <HintPath>$(NavisworksInstallDir)\Autodesk.Navisworks.Api.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Autodesk.Navisworks.Controls">
+      <HintPath>$(NavisworksInstallDir)\Autodesk.Navisworks.Controls.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
+    <!-- The ViewControl panel hosts a WinForms control inside the 3D view. -->
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NavisElevation.Core\NavisElevation.Core.csproj" />
+  </ItemGroup>
+
+</Project>

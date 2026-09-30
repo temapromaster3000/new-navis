@@ -1,0 +1,49 @@
+<Project>
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)Version.txt')">
+    <PluginVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)Version.txt').Trim())</PluginVersion>
+    <Version>$(PluginVersion)</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>12</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <!--
+    Navisworks Manage 2021 ships its API as loose DLLs in the install folder.
+    There is no NuGet package for it, so the path is referenced directly.
+    Override on the command line if the install lives elsewhere:
+      dotnet build -p:NavisworksInstallDir="D:\Autodesk\Navisworks Manage 2021"
+  -->
+  <PropertyGroup>
+    <NavisworksInstallDir Condition="'$(NavisworksInstallDir)' == ''">C:\Program Files\Autodesk\Navisworks Manage 2021</NavisworksInstallDir>
+  </PropertyGroup>
+
+  <!--
+    Core holds platform-independent logic only (formatting, level lookup,
+    project offset) so it stays free of any Navisworks reference.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NavisElevation.Core'">
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\Core\</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <!--
+    net48, not net8.0: Navisworks 2021 hosts plugins on .NET Framework 4.8.
+    x64 only: Navisworks 2021 has no 32-bit build.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NavisElevation.Navis'">
+    <TargetFramework>net48</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\Navis\</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+</Project>

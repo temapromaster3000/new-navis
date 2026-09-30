@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    The .NET Framework 4.8 targeting pack is not installed on this machine, so the
+    reference assemblies come from NuGet instead. Without this the net48 build fails
+    with MSB3644 ("reference assemblies for .NETFramework,Version=v4.8 were not found").
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!--
+    Guard against a missing or relocated Navisworks installation. Referencing a
+    non-existent HintPath would otherwise surface as a confusing CS0246 later.
+  -->
+  <Target Name="ValidateNavisworksInstall" BeforeTargets="ResolveAssemblyReferences" Condition="'$(MSBuildProjectName)' == 'NavisElevation.Navis'">
+    <Error Condition="!Exists('$(NavisworksInstallDir)\Autodesk.Navisworks.Api.dll')"
+           Text="Navisworks API not found at '$(NavisworksInstallDir)'. Install Navisworks Manage 2021 or pass -p:NavisworksInstallDir=&lt;path&gt;." />
+  </Target>
+</Project>
