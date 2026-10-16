@@ -22,12 +22,31 @@
       <Private>false</Private>
     </Reference>
 
-    <!-- The ViewControl panel hosts a WinForms control inside the 3D view. -->
+    <!-- The overlay label and the WinForms host control both need WinForms types. -->
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
 
+  <!--
+    The Core sources are compiled straight into this assembly instead of being referenced
+    as a separate project.
+
+    Reason: Navisworks loads a plug-in assembly itself and does not reliably resolve a
+    second assembly sitting beside it, so a two-file deployment can fail to load with no
+    error message anywhere. One DLL removes that whole class of failure.
+
+    Consequence: nothing may reference NavisElevation.Core as an assembly from this
+    project, or the types would exist twice. Keep Core free of Navisworks references so
+    it stays usable on its own — that boundary is what makes the inlining safe.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\NavisElevation.Core\NavisElevation.Core.csproj" />
+    <!--
+      obj\bin are excluded on purpose: the default compile glob only filters the current
+      project, so without this the other project's generated AssemblyInfo.cs files land
+      here and produce duplicate-attribute errors.
+    -->
+    <Compile Include="..\NavisElevation.Core\**\*.cs"
+             Exclude="..\NavisElevation.Core\obj\**;..\NavisElevation.Core\bin\**"
+             LinkBase="Core" />
   </ItemGroup>
 
 </Project>
