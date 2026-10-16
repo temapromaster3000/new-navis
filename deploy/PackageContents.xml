@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Описание бандла плагина для Navisworks Manage 2021.
+
+  Navisworks 2021 автоматически подхватывает плагины только из папки Plugins
+  внутри папки установки (C:\Program Files\Autodesk\Navisworks Manage 2021\Plugins),
+  а туда нельзя записать без прав администратора. Документированный способ
+  установки без прав админа - бандл в %APPDATA%\Autodesk\ApplicationPlugins.
+  Без этого файла бандл не подхватывается, причём молча, без всякой ошибки.
+
+  Требования, проверенные на реально работающих плагинах для Navisworks:
+
+  * SeriesMin/SeriesMax = Nw18. Соответствие серий: Nw17 = 2020, Nw18 = 2021,
+    Nw19 = 2022. Для этой версии Navisworks обязательно Nw18 - иначе компонент
+    не применяется, молча.
+  * AppType="ManagedPlugin". Без него бандл не считается управляемым .NET-плагином.
+  * ModuleName задаёт точный относительный путь к сборке, поэтому имя папки
+    внутри Contents может быть любым, хоть 2021, хоть v18.
+  * ProductCode - уникальный GUID. Менять при каждой новой публикации не нужно,
+    но и повторять у другого плагина нельзя.
+
+  Папка en-US с ресурсами ленты здесь не нужна: она требуется только плагинам
+  с собственным XAML файлом ленты, а кнопка этого плагина живёт во встроенной
+  вкладке Add-Ins.
+-->
+<ApplicationPackage SchemaVersion="1.0" Name="NavisElevation" AppVersion="1.0.0.0" ProductType="Application" Author="ADSK" ProductCode="{D2B51A53-C9A3-4A37-8FB6-CDEAAA943787}">
+  <Components Description="Navisworks 2021 parts">
+    <RuntimeRequirements OS="Win64" Platform="NAVMAN|NAVSIM" SeriesMin="Nw18" SeriesMax="Nw18" />
+    <ComponentEntry AppName="NavisElevation" AppType="ManagedPlugin" ModuleName="./Contents/2021/NavisElevation.dll" />
+  </Components>
+</ApplicationPackage>
