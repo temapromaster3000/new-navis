@@ -102,6 +102,21 @@ $api.GetType('Autodesk.Navisworks.Api.ModelItem').GetMembers('Public,Instance,De
   статическим полем, заполняемым непосредственно перед включением инструмента.
 - **`ToolPlugin.CustomToolPluginId` возвращает `"<id>.<id разработчика>"`, а не голый
   `id`.** Сравнение с одним только `PluginIds.ToolId` не сойдётся никогда.
+- **Своя вкладка ленты требует `CommandHandlerPlugin`, а не `AddInPlugin`.** Только
+  `CommandHandlerPlugin` несёт `[RibbonLayout]` и `[RibbonTab]`; наследование в C#
+  одинарное, поэтому кнопка во встроенной Add-Ins и кнопка на своей вкладке живут в
+  двух разных классах. Разметка — `Autodesk.Windows.*` из `AdWindows.dll` плюс
+  `Autodesk.Navisworks.Gui.Roamer.AIRLook.NWRibbonButton` из `navisworks.gui.roamer.dll`,
+  обе подключаются с `Private=false`. Образец настоящей вкладки лежит в самой поставке:
+  `ru-RU\GlueRibbon.xaml` — с него взяты имена пространств имён и набор атрибутов.
+  Разметку кладём **файлом в языковую подпапку рядом с плагином** (`ru-RU` для русского
+  интерфейса, `en-US` как запасной), вместе с файлом локализации `*.name`, на который
+  указывает `[Strings]`. Это не ресурс внутри сборки: в сборке Navisworks разметку не
+  ищет. Описано в блоге Autodesk про ленту Navisworks: «the xaml and name file must
+  reside in the sub-folder of the plug-in dll. The sub-folder name needs to be a Language
+  Code». Если файл не найден, вкладка молча не появляется — без ошибки и без записи в
+  лог. Образец: у встроенных плагинов Navisworks разметка лежит в `ru-RU\RenderTab.xaml`
+  и `ru-RU\GlueRibbon.xaml`.
 
 Проверка собранного плагина без запуска Navisworks: атрибуты видны в самой сборке,
 их можно прочитать рефлексией по `bin\Debug\Navis\NavisElevation.dll` — так проверяется,
@@ -120,6 +135,15 @@ $api.GetType('Autodesk.Navisworks.Api.ModelItem').GetMembers('Public,Instance,De
   `DockPanePlugin`.
 - После изменения оверлея обязательно зови `View.RequestDelayedRedraw(ViewRedrawRequests.OverlayRender)` —
   в enum есть `None`, `Render`, `OverlayRender`, `All`, и по умолчанию будет `None`.
+- **Координаты в `Graphics.Text2D` отсчитываются от нижнего левого угла окна, `y` растёт
+  вверх.** Верхний край — это `view.Height`, а не ноль. Подпись, нарисованная на
+  `margin + i * lineHeight`, уезжает в нижний углу, а строки идут снизу вверх; тень,
+  смещённая на `+1`, ложится поверх текста, а не под ним. Источники: официальный пример
+  Autodesk в блоге про `RenderPlugin` и скриншот из Navisworks.
+- **WPF-окно из плагина поверх Navisworks работает**, потому что GUI самой программы
+  WPF-based: `navisworks.gui.roamer.dll` ссылается на PresentationFramework,
+  PresentationCore и WindowsBase. Родительское окно задаётся через `WindowInteropHelper`,
+  потому что у WPF свойство `Window.Owner` принимает объект `Window`, а не `HWND`.
 - `PluginAttribute` принимает только **два** аргумента: id и developerId. Имя, подсказки
   и иконка задаются именованными свойствами. `DisplayName` есть у `PluginAttribute`,
   `RibbonTabAttribute` и `CommandAttribute`, но **нет** у `RibbonLayoutAttribute`
@@ -159,6 +183,20 @@ $api.GetType('Autodesk.Navisworks.Api.ModelItem').GetMembers('Public,Instance,De
   Разметка: `RibbonControl` → `RibbonTab` → `RibbonPanel` → `RibbonPanelSource` →
   `local:NWRibbonButton`, плюс ссылки на сборки `Roamer` (GUI Navisworks) и `AdWindows`.
   `Id` вкладки и `Id` кнопки в XAML обязаны совпадать с `[RibbonTab]` и `[Command]`.
+- **Разметка ленты лежит файлом в языковой подпапке рядом с плагином, а не ресурсом
+  в сборке.** То есть `Contents\2021\ru-RU\RibbonDefinition.xaml` плюс
+  `Contents\2021\ru-RU\<имя>.name`, на который указывает `[Strings]`. `ru-RU` — под язык
+  интерфейса Navisworks, `en-US` — запасной. Описано в блоге Autodesk про ленту:
+  «the xaml and name file must reside in the sub-folder of the plug-in dll. The
+  sub-folder name needs to be a Language Code». Проверено на этой машине: с разметкой
+  в папке рядом со сборкой вкладка появляется, в корне бандла — нет. Ни `EmbeddedResource`
+  с XAML, ни контейнер `<сборка>.Resources.resources` Navisworks не читает.
+- **Лента и встроенная вкладка Add-Ins — несовместимы в одном классе.** Лента требует
+  `CommandHandlerPlugin`, а вывод кнопки в Add-Ins — `AddInPlugin` с
+  `[AddInPlugin(AddInLocation.AddIn)]`, а наследование в C# одинарное. Сейчас плагин живёт
+  только на своей вкладке, класса-наследника `AddInPlugin` в проекте нет. Плата: если
+  Navisworks перестанет читать разметку, кнопок не будет нигде и лога тоже не будет —
+  сборка просто не загрузится.
 - `Plugin.OnUnloading()` — `protected`, а не `public`. Если переопределяешь, менять
   модификатор доступа нельзя.
 - `CommandState` — класс, а не enum. Создаётся через `new CommandState { IsEnabled = … }`.
