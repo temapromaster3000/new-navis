@@ -58,19 +58,37 @@
     <Reference Include="System.Xaml" />
   </ItemGroup>
 
-  <!--
-    The Core sources are compiled straight into this assembly instead of being referenced
-    as a separate project.
-
-    Reason: Navisworks loads a plug-in assembly itself and does not reliably resolve a
-    second assembly sitting beside it, so a two-file deployment can fail to load with no
-    error message anywhere. One DLL removes that whole class of failure.
-
-    Consequence: nothing may reference NavisElevation.Core as an assembly from this
-    project, or the types would exist twice. Keep Core free of Navisworks references so
-    it stays usable on its own — that boundary is what makes the inlining safe.
-  -->
   <ItemGroup>
+    <!--
+      The ribbon layout and the name file are not inside the assembly: Navisworks looks for
+      them as files in a language sub-folder next to the plug-in. Only the icons are packed
+      into the assembly, and in two names at once.
+
+      Navisworks resolves the icon path either against the folder with the assembly or
+      against its resources, and the attribute can hold only one value. So the same PNG is
+      stored in both places: as a file next to the assembly and as a manifest resource
+      named <assembly>.<file>. Whichever way the lookup goes, the icon is found. What was
+      not used is left over for the next run.
+    -->
+    <None Remove="Resources\*.png" />
+    <EmbeddedResource Include="Resources\*.png">
+      <LogicalName>NavisElevation.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The Core sources are compiled straight into this assembly instead of being referenced
+      as a separate project.
+
+      Reason: Navisworks loads a plug-in assembly itself and does not reliably resolve a
+      second assembly sitting beside it, so a two-file deployment can fail to load with no
+      error message anywhere. One DLL removes that whole class of failure.
+
+      Consequence: nothing may reference NavisElevation.Core as an assembly from this
+      project, or the types would exist twice. Keep Core free of Navisworks references so
+      it stays usable on its own — that boundary is what makes the inlining safe.
+    -->
     <!--
       obj\bin are excluded on purpose: the default compile glob only filters the current
       project, so without this the other project's generated AssemblyInfo.cs files land

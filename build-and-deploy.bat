@@ -118,6 +118,12 @@ for %%L in (ru-RU en-US) do (
 rem A layout of an earlier scheme, lying next to the dll. Not used any more.
 if exist "%TARGET%\RibbonDefinition.xaml" del /F /Q "%TARGET%\RibbonDefinition.xaml"
 
+rem Icons of the ribbon buttons. They are also packed into the assembly, under the names
+rem NavisElevation.<file>.png, because Navisworks looks for an icon either next to the
+rem assembly or in its resources - and the attribute can hold only one path.
+copy /Y "src\%PLUGIN_NAME%.Navis\Resources\*.png" "%TARGET%\" >nul 2>nul
+if exist "%TARGET%\Elevation16.png" ( echo [OK] Button icons copied ) else ( echo [i] Button icons not copied - only the embedded ones )
+
 if exist "%TARGET%\ru-RU\RibbonDefinition.xaml" (
     echo [OK] Ribbon layout and name file placed in:
     echo       %TARGET%\ru-RU

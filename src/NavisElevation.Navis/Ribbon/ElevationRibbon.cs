@@ -38,15 +38,16 @@ namespace NavisElevation.Navis.Ribbon
     [RibbonTab(PluginIds.TabId, DisplayName = "Navis Elevation")]
     [Strings("NavisElevation.name")]
     [Command(PluginIds.ToggleCommandId, DisplayName = "Показать отметку", CanToggle = true,
+        Icon = "Elevation16.png", LargeIcon = "Elevation32.png",
         ToolTip = "Показать отметку элемента",
         ExtendedToolTip = "Включает режим показа отметки элемента.\r\n\r\n"
                         + "После включения наведите курсор на любой элемент модели — рядом с ним "
                         + "появится отметка, границы по высоте и имя модели.\r\n\r\n"
                         + "Повторное нажатие кнопки, Esc или правая кнопка мыши выключают режим.")]
-    [Command(PluginIds.SettingsCommandId, DisplayName = "Настройки", CanToggle = false,
+    [Command(PluginIds.SettingsCommandId, DisplayName = "Настройки плагина", CanToggle = false,
+        Icon = "Settings16.png", LargeIcon = "Settings32.png",
         ToolTip = "Настройки плагина",
-        ExtendedToolTip = "Открывает окно настроек: версия плагина, калибровка отметки "
-                        + "и проверка обновлений.")]
+        ExtendedToolTip = "Открывает окно настроек: версия плагина и проверка обновлений.")]
     public class ElevationRibbon : CommandHandlerPlugin
     {
         /// <summary>

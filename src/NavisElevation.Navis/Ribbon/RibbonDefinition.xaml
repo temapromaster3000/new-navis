@@ -34,20 +34,20 @@
                               Orientation="Vertical"
                               Size="Large"
                               ShowText="True"
-                              Text="Отметка&#xA;элемента"
-                              KeyTip="E" />
+                              Text="Показать отметку"
+                              KeyTip="EP" />
       </RibbonPanelSource>
     </RibbonPanel>
 
     <RibbonPanel x:Uid="NavisElevationSettingsPanel">
-      <RibbonPanelSource x:Uid="NavisElevationSettingsPanelSource" KeyTip="S" Title="Плагин">
+      <RibbonPanelSource x:Uid="NavisElevationSettingsPanelSource" KeyTip="S" Title="Настройки">
         <local:NWRibbonButton x:Uid="NavisElevationSettingsButton"
                               Id="NavisElevation.SettingsCommand"
                               Orientation="Vertical"
                               Size="Large"
                               ShowText="True"
-                              Text="Настройки"
-                              KeyTip="S" />
+                              Text="Настройки плагина"
+                              KeyTip="SP" />
       </RibbonPanelSource>
     </RibbonPanel>
 

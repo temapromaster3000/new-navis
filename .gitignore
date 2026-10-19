@@ -37,3 +37,6 @@ desktop.ini
 # Misc
 *.tmp
 *.temp
+
+# Contact sheet for checking the generated button icons, produced on request
+tools/icons-preview.png
