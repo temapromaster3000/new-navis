@@ -29,10 +29,16 @@ namespace NavisElevation.Navis
             DiagnosticLog.RecordPluginLoad(typeof(ElevationProbeTool).FullName);
         }
 
-        /// <summary>Смещение подписи от курсора, чтобы не перекрывать сам элемент.</summary>
-        private const int AnchorOffsetX = 18;
+        /// <summary>Поля подписи от левого и верхнего края вида, в пикселях.</summary>
+        /// <remarks>
+        /// Подпись стоит в углу вида и не следует за курсором. Раньше она смещалась от курсора,
+        /// а за серединой экрана прыгала на левый край, потому что ширину текста не мерили и
+        /// наличие места оценивали по половине экрана. В углу доступна вся ширина вида, и
+        /// длинное имя модели обрезаться не будет.
+        /// </remarks>
+        private const int CaptionMarginX = 12;
 
-        private const int AnchorOffsetY = 20;
+        private const int CaptionMarginY = 20;
 
         /// <summary>Межстрочный интервал подписи в пикселях.</summary>
         private const int LineHeight = 18;
@@ -112,8 +118,6 @@ namespace NavisElevation.Navis
         }
 
         private string[] _lines;
-        private int _anchorX;
-        private int _anchorY;
 
         private int _lastPickX = -10000;
         private int _lastPickY = -10000;
@@ -199,7 +203,9 @@ namespace NavisElevation.Navis
                     graphics.Color(shadow ? ShadowColor : TextColor, 1.0);
 
                     int dx = shadow ? 1 : 0;
-                    int dy = shadow ? 1 : 0;
+
+                    // Минус, а не плюс: сдвиг вниз по экрану — это меньший y.
+                    int dy = shadow ? -1 : 0;
 
                     for (int i = 0; i < _lines.Length; i++)
                     {
@@ -209,7 +215,15 @@ namespace NavisElevation.Navis
                             continue;
                         }
 
-                        graphics.Text2D(_font, line, Point2D.Origin, _anchorX + dx, _anchorY + i * LineHeight + dy);
+                        // Координаты в Text2D отсчитываются от нижнего левого угла окна, и y растёт
+                        // вверх: 0 — низ, view.Height — верх. Верхний край подписи — это
+                        // view.Height, а не ноль. Написать здесь CaptionMarginY + i *
+                        // LineHeight нельзя: подпись уедет в нижний угол, а строки
+                        // перевернутся по вертикали. Проверено по официальному примеру
+                        // Autodesk в блоге про RenderPlugin и по скриншоту из Navisworks.
+                        int topY = view.Height - CaptionMarginY;
+
+                        graphics.Text2D(_font, line, Point2D.Origin, CaptionMarginX + dx, topY - i * LineHeight + dy);
                     }
                 }
 
@@ -281,12 +295,19 @@ namespace NavisElevation.Navis
 
             _hadItem = true;
 
-            BuildCaption(hit, view, x, y);
+            BuildCaption(hit);
             UpdateHighlight(hit.ModelItem);
             RequestRedraw(view);
         }
 
-        private void BuildCaption(PickItemResult hit, View view, int x, int y)
+        /// <summary>
+        /// Собрать строки подписи для элемента под курсором.
+        /// </summary>
+        /// <remarks>
+        /// Параметров вида и координат здесь нет намеренно: подпись прибита к углу, её
+        /// позиция не зависит от того, где находится курсор.
+        /// </remarks>
+        private void BuildCaption(PickItemResult hit)
         {
             try
             {
@@ -321,26 +342,11 @@ namespace NavisElevation.Navis
                 }
 
                 _lines = lines.ToArray();
-                _anchorX = ComputeAnchorX(view, x);
-                _anchorY = Math.Min(y + AnchorOffsetY, Math.Max(0, view.Height - _lines.Length * LineHeight));
             }
             catch (Exception)
             {
                 ClearCaption();
             }
-        }
-
-        /// <summary>
-        /// Слева от курсора или у левого края вида.
-        /// </summary>
-        /// <remarks>
-        /// Точную ширину текста пришлось бы измерять вызовом Text2DExtents на каждом кадре,
-        /// поэтому решение грубее и дешевле: если курсор в левой половине вида, текст идёт
-        /// справа от него, иначе прижимается к левому краю. Так подпись не обрезается.
-        /// </remarks>
-        private static int ComputeAnchorX(View view, int x)
-        {
-            return x > view.Width / 2 ? 12 : x + AnchorOffsetX;
         }
 
         private void EnsureFormatter(ModelItem item)
