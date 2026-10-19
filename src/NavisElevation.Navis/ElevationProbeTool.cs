@@ -77,6 +77,22 @@ namespace NavisElevation.Navis
         internal static Navisworks.Tool PendingPreviousTool = Navisworks.Tool.None;
 
         /// <summary>
+        /// Записывался ли уже промах мыши в лог.
+        /// </summary>
+        /// <remarks>
+        /// Флаг статический, потому что экземпляр инструмента Navisworks переиспользует
+        /// между включениями. Без ограничения лог засорялся бы десятками одинаковых
+        /// строк в секунду: при движении мыши по краю элементы и пустота чередуются.
+        /// </remarks>
+        private static bool _emptyReported;
+
+        /// <summary>Сбросить признак промаха: вызывается при каждом включении режима.</summary>
+        internal static void ResetEmptyReport()
+        {
+            _emptyReported = false;
+        }
+
+        /// <summary>
         /// Документ, в котором работает режим отметки.
         /// </summary>
         /// <remarks>
@@ -284,7 +300,16 @@ namespace NavisElevation.Navis
                 if (_hadItem)
                 {
                     _hadItem = false;
-                    DiagnosticLog.Info("Курсор в пустоте — подпись снята.");
+
+                    // Записываем один раз за включение режима. При движении мыши по краю
+                    // элементы и пустота чередуются, и без ограничения лог засорялся бы
+                    // десятками одинаковых строк в секунду.
+                    if (!_emptyReported)
+                    {
+                        _emptyReported = true;
+                        DiagnosticLog.Info("Курсор в пустоте — подпись снята. Следующая запись "
+                                          + "появится только если элемент снова найдётся.");
+                    }
                 }
 
                 ClearCaption();

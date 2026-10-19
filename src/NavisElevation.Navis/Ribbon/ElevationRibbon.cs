@@ -43,7 +43,8 @@ namespace NavisElevation.Navis.Ribbon
         ExtendedToolTip = "Включает режим показа отметки элемента.\r\n\r\n"
                         + "После включения наведите курсор на любой элемент модели — рядом с ним "
                         + "появится отметка, границы по высоте и имя модели.\r\n\r\n"
-                        + "Повторное нажатие кнопки, Esc или правая кнопка мыши выключают режим.")]
+                        + "Выключить режим можно повторным нажатием кнопки, клавишей Esc "
+                        + "или правой кнопкой мыши.")]
     [Command(PluginIds.SettingsCommandId, DisplayName = "Настройки плагина", CanToggle = false,
         Icon = "Settings16.png", LargeIcon = "Settings32.png",
         ToolTip = "Настройки плагина",

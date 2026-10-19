@@ -27,18 +27,11 @@
 
   <RibbonTab x:Uid="NavisElevationTab" Id="NavisElevation.Tab" Title="Navis Elevation" KeyTip="NE">
 
-    <RibbonPanel x:Uid="NavisElevationElevationPanel">
-      <RibbonPanelSource x:Uid="NavisElevationElevationPanelSource" KeyTip="E" Title="Отметка">
-        <local:NWRibbonButton x:Uid="NavisElevationToggleButton"
-                              Id="NavisElevation.ToggleCommand"
-                              Orientation="Vertical"
-                              Size="Large"
-                              ShowText="True"
-                              Text="Показать отметку"
-                              KeyTip="EP" />
-      </RibbonPanelSource>
-    </RibbonPanel>
-
+    <!--
+      Панель настроек всегда идёт первой слева, остальные модули - после неё.
+      Порядок элементов в разметке и есть порядок на ленте: отдельного свойства
+      "порядок" у панели нет.
+    -->
     <RibbonPanel x:Uid="NavisElevationSettingsPanel">
       <RibbonPanelSource x:Uid="NavisElevationSettingsPanelSource" KeyTip="S" Title="Настройки">
         <local:NWRibbonButton x:Uid="NavisElevationSettingsButton"
@@ -48,6 +41,18 @@
                               ShowText="True"
                               Text="Настройки плагина"
                               KeyTip="SP" />
+      </RibbonPanelSource>
+    </RibbonPanel>
+
+    <RibbonPanel x:Uid="NavisElevationElevationPanel">
+      <RibbonPanelSource x:Uid="NavisElevationElevationPanelSource" KeyTip="E" Title="Отметка">
+        <local:NWRibbonButton x:Uid="NavisElevationToggleButton"
+                              Id="NavisElevation.ToggleCommand"
+                              Orientation="Vertical"
+                              Size="Large"
+                              ShowText="True"
+                              Text="Показать отметку"
+                              KeyTip="EP" />
       </RibbonPanelSource>
     </RibbonPanel>
 

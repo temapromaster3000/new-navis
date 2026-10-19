@@ -98,8 +98,18 @@ namespace NavisElevation.Navis
                 // Инструмент создан Navisworks, поэтому передать ему предыдущий инструмент
                 // в конструктор невозможно — отдаём через статическое поле.
                 ElevationProbeTool.PendingPreviousTool = previousTool;
+                ElevationProbeTool.ResetEmptyReport();
 
                 document.Tool.SetCustomToolPlugin(tool);
+
+                // Клавиатурный фокус после нажатия кнопки остаётся на ленте, и Esc до
+                // плагина не доходит. Возвращаем фокус в 3D-вид, чтобы режим можно было
+                // выключить сразу, не кликая в вид.
+                bool focused = ViewFocus.FocusActiveView(Application.Gui.MainWindow.Handle);
+                DiagnosticLog.Info(focused
+                    ? "Фокус передан в 3D-вид, Esc будет работать."
+                    : "Окно 3D-вида не найдено, Esc сработает после клика в вид.");
+
                 return 0;
             }
             catch (System.Exception exception)
