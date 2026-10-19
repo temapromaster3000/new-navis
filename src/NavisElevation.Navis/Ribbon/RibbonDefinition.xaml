@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Разметка ленты Navis Elevation.
+
+  Образец для подражания - вкладка BIM 360 Glue, которая лежит в самой поставке
+  Navisworks 2021: ru-RU\GlueRibbon.xaml. Имена пространств имён, порядок
+  RibbonPanel -> RibbonPanelSource -> NWRibbonButton и набор атрибутов взяты оттуда,
+  а не придуманы.
+
+  Navisworks ищет этот файл не внутри сборки, а в языковой подпапке рядом с
+  плагином: ru-RU для русского интерфейса, en-US как запасной. Рядом с разметкой
+  лежит файл NavisElevation.name с локализованными названиями, на который указывает
+  атрибут [Strings].
+
+  Атрибуты, которые молча ломают вкладку:
+  * Id вкладки обязан совпадать с PluginIds.TabId, иначе вкладка не появится;
+  * Id кнопки обязан совпадать с id из PluginIds, иначе кнопка не появится;
+  * Image и LargeImage не заданы - иконки придут в этапе 2, из атрибута [Command].
+    Если прописать их здесь, они перекроют то, что задано атрибутом.
+-->
+<RibbonControl x:Uid="NavisElevationRibbon"
+               xmlns="clr-namespace:Autodesk.Windows;assembly=AdWindows"
+               xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+               xmlns:system="clr-namespace:System;assembly=mscorlib"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               xmlns:local="clr-namespace:Autodesk.Navisworks.Gui.Roamer.AIRLook;assembly=navisworks.gui.roamer">
+
+  <RibbonTab x:Uid="NavisElevationTab" Id="NavisElevation.Tab" Title="Navis Elevation" KeyTip="NE">
+
+    <RibbonPanel x:Uid="NavisElevationElevationPanel">
+      <RibbonPanelSource x:Uid="NavisElevationElevationPanelSource" KeyTip="E" Title="Отметка">
+        <local:NWRibbonButton x:Uid="NavisElevationToggleButton"
+                              Id="NavisElevation.ToggleCommand"
+                              Orientation="Vertical"
+                              Size="Large"
+                              ShowText="True"
+                              Text="Отметка&#xA;элемента"
+                              KeyTip="E" />
+      </RibbonPanelSource>
+    </RibbonPanel>
+
+    <RibbonPanel x:Uid="NavisElevationSettingsPanel">
+      <RibbonPanelSource x:Uid="NavisElevationSettingsPanelSource" KeyTip="S" Title="Плагин">
+        <local:NWRibbonButton x:Uid="NavisElevationSettingsButton"
+                              Id="NavisElevation.SettingsCommand"
+                              Orientation="Vertical"
+                              Size="Large"
+                              ShowText="True"
+                              Text="Настройки"
+                              KeyTip="S" />
+      </RibbonPanelSource>
+    </RibbonPanel>
+
+  </RibbonTab>
+
+</RibbonControl>

@@ -95,6 +95,37 @@ if not defined COPIED (
     exit /b 1
 )
 
+rem The ribbon layout and the localization file are not inside the assembly: Navisworks
+rem looks for them as files in a language sub-folder next to the plug-in. "ru-RU" is for
+rem the Russian interface, "en-US" is the fallback. This is what the Autodesk blog on
+rem the Navisworks ribbon describes: "the xaml and name file must reside in the
+rem sub-folder of the plug-in dll. The sub-folder name needs to be a Language Code".
+rem
+rem The sub-folder is created next to the assembly, that is in Contents\2021. It was
+rem checked on this machine: with the layout there the tab appears, with the layout in
+rem the bundle root it does not. If a future Navisworks changes the lookup, the first
+rem thing to try is putting these files into the bundle root instead.
+set "RIBBON_SRC=src\%PLUGIN_NAME%.Navis\Ribbon\RibbonDefinition.xaml"
+set "NAME_SRC=deploy\%PLUGIN_NAME%.name"
+
+for %%L in (ru-RU en-US) do (
+    if not exist "%TARGET%\%%L" mkdir "%TARGET%\%%L"
+
+    copy /Y "%RIBBON_SRC%" "%TARGET%\%%L\RibbonDefinition.xaml" >nul 2>nul
+    copy /Y "%NAME_SRC%" "%TARGET%\%%L\%PLUGIN_NAME%.name" >nul 2>nul
+)
+
+rem A layout of an earlier scheme, lying next to the dll. Not used any more.
+if exist "%TARGET%\RibbonDefinition.xaml" del /F /Q "%TARGET%\RibbonDefinition.xaml"
+
+if exist "%TARGET%\ru-RU\RibbonDefinition.xaml" (
+    echo [OK] Ribbon layout and name file placed in:
+    echo       %TARGET%\ru-RU
+    echo       %TARGET%\en-US
+) else (
+    echo [i] Ribbon files not copied - the tab will not appear
+)
+
 rem The bundle description points at the assembly by relative path, so it must be
 rem refreshed together with the DLL. Navisworks does not lock this file.
 copy /Y "%PACKAGE_SOURCE%" "%BUNDLE%\PackageContents.xml" >nul

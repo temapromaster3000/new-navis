@@ -3,7 +3,15 @@
   <PropertyGroup>
     <!-- Navisworks loads the plugin assembly itself, so the shipped file is NavisElevation.dll. -->
     <AssemblyName>NavisElevation</AssemblyName>
-    <RootNamespace>NavisElevation.Navis</RootNamespace>
+    <!--
+      Root namespace is aligned with the assembly name on purpose. Navisworks looks for the
+      ribbon layout in a container named <assembly>.Resources.resources, and the classic
+      .NET Framework convention derives that name from the root namespace. Keeping the two
+      equal means both readings give the same name, and the container needs to exist only
+      once. The namespaces of the classes themselves are declared explicitly and are not
+      affected by this setting.
+    -->
+    <RootNamespace>NavisElevation</RootNamespace>
     <Description>Navisworks Manage 2021 plugin that reports the elevation of the element under the cursor.</Description>
   </PropertyGroup>
 
@@ -22,8 +30,32 @@
       <Private>false</Private>
     </Reference>
 
+    <!--
+      Ribbon UI. AdWindows holds the RibbonControl/RibbonTab/RibbonPanel types,
+      navisworks.gui.roamer holds the concrete NWRibbonButton. Both are needed to compile
+      against the ribbon, both are resolved by Navisworks at runtime, so Private=false.
+    -->
+    <Reference Include="AdWindows">
+      <HintPath>$(NavisworksInstallDir)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="navisworks.gui.roamer">
+      <HintPath>$(NavisworksInstallDir)\navisworks.gui.roamer.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+
     <!-- The overlay label and the WinForms host control both need WinForms types. -->
     <Reference Include="System.Windows.Forms" />
+
+    <!--
+      WPF for the settings window. Navisworks itself is a WPF application: its GUI assembly
+      references PresentationFramework, PresentationCore and WindowsBase, so a plug-in hosted
+      in that process can create WPF windows without dragging in a second UI stack.
+    -->
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
   </ItemGroup>
 
   <!--
