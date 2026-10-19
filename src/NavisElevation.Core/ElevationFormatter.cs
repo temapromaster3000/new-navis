@@ -1,29 +1,24 @@
-using System;
 using System.Globalization;
 
 namespace NavisElevation.Core
 {
     /// <summary>
-    /// Превращает сырую координату Z из Navisworks в строки для подписи на экране.
+    /// Превращает сырую координату Z из Navisworks в строку отметки для подписи на экране.
     /// </summary>
     /// <remarks>
-    /// В API Navisworks нет базовой точки проекта, поэтому «правильность» отметки нельзя
-    /// проверить заранее — она проверяется сверкой с уровнями. Из-за этого форматтер
-    /// показывает <b>две</b> величины: пересчитанную в метры (так отметки записывают
-    /// в чертежах) и исходное число в единицах модели (чтобы можно было сверить
-    /// с эталоном вручную).
+    /// Отметка всегда выводится в метрах — так её записывают в чертежах, — независимо от
+    /// единиц модели. Сырое значение в единицах модели не показывается: перевод сверен
+    /// калибровкой по проектной отметке, и подпись вида «+3.000 м (9.843 фт)» только мешала
+    /// прочитать число.
     ///
     /// <see cref="ProjectSettings.ProjectOffset"/> — калибровочное смещение в метрах,
-    /// прибавляемое к отметке. При первом прогоне на реальной модели пользователь сверяет
-    /// отметку элемента с известной и вписывает сюда разницу.
+    /// прибавляемое к отметке. Нужен для моделей, у которых ноль Navisworks не совпадает с
+    /// проектным; на большинстве моделей остаётся равным нулю.
     /// </remarks>
     public sealed class ElevationFormatter
     {
         /// <summary>Отметки в чертежах пишут в метрах с точностью до миллиметра.</summary>
         private const string MeterFormat = "+0.000;-0.000;0.000";
-
-        /// <summary>Сырое значение показываем без лишних нулей: «12345,678» вместо «12345,678000».</summary>
-        private const string RawFormat = "0.###";
 
         /// <summary>
         /// Подпись отметки всегда в метрах, независимо от единиц модели.
@@ -32,6 +27,8 @@ namespace NavisElevation.Core
         /// Модель может прийти в футах или дюймах, но отметки в чертежах пишут в метрах.
         /// Подписывать переведённое значение единицами модели нельзя: получается «9.843 фт»
         /// вместо «3.000 м», то есть число, которое никто не может прочитать как высоту.
+        /// Сырое значение в единицах модели в подписи не показывается: перевод сверен
+        /// калибровкой по проектной отметке, а «+3.000 м (9.843 фт)» мешало читать число.
         /// </remarks>
         private const string MetersSuffix = "м";
 
@@ -79,41 +76,10 @@ namespace NavisElevation.Core
             return GetElevationMeters(rawValue).ToString(MeterFormat, CultureInfo.InvariantCulture) + " " + MetersSuffix;
         }
 
-        /// <summary>Исходное число в единицах модели — для ручной сверки: «9843,000 фт».</summary>
-        public string FormatRaw(double rawValue)
-        {
-            return rawValue.ToString(RawFormat, CultureInfo.InvariantCulture) + " " + LengthUnits.GetShortName(_unit);
-        }
-
-        /// <summary>Главная строка плюс исходное значение: «+3.000 м (9.843 фт)».</summary>
-        public string FormatElevationWithRaw(double rawValue)
-        {
-            return FormatMeters(rawValue) + " (" + FormatRaw(rawValue) + ")";
-        }
-
-        /// <summary>Диапазон по вертикали: «+2.900 м … +3.000 м».</summary>
+        /// <summary>Диапазон по вертикали: «+2.700 м … +3.000 м».</summary>
         public string FormatMetersSpan(double rawMin, double rawMax)
         {
             return FormatMeters(rawMin) + " … " + FormatMeters(rawMax);
-        }
-
-        /// <summary>Отклонение от уровня со знаком: «+0.345 м», «-0.120 м», «на уровне».</summary>
-        public string FormatDelta(double rawDelta)
-        {
-            if (Math.Abs(ToMeters(rawDelta)) < 0.0005)
-            {
-                return "на уровне";
-            }
-
-            string sign = rawDelta > 0 ? "+" : "-";
-            double meters = Math.Abs(ToMeters(rawDelta));
-            return sign + meters.ToString("0.000", CultureInfo.InvariantCulture) + " " + MetersSuffix;
-        }
-
-        /// <summary>Отметка уровня для показа: «+12.000 м».</summary>
-        public string FormatLevelElevation(double rawElevation)
-        {
-            return GetElevationMeters(rawElevation).ToString(MeterFormat, CultureInfo.InvariantCulture) + " " + MetersSuffix;
         }
     }
 }

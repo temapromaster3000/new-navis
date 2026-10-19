@@ -1,56 +1,18 @@
-using System.Collections.Generic;
 using NavisElevation.Core;
 using Navisworks = Autodesk.Navisworks.Api;
 
 namespace NavisElevation.Navis
 {
     /// <summary>
-    /// Чтение данных, которые Navisworks отдаёт про документ: уровни, единицы, модель-источник.
+    /// Чтение данных, которые Navisworks отдаёт по документу: единицы и модель-источник.
     /// </summary>
+    /// <remarks>
+    /// Уровни Navisworks сознательно не используются. Строка уровня в подписи не появлялась
+    /// ни разу: в рабочей модели уровней нет, а без них искать ближайший нечего. Плагину
+    /// нужна сама отметка, и она берётся прямо из координаты точки попадания.
+    /// </remarks>
     internal static class DocumentCatalog
     {
-        /// <summary>
-        /// Уровни модели вместе с их отметками.
-        /// </summary>
-        /// <remarks>
-        /// В API Navisworks нет базовой точки проекта, поэтому уровни — единственный
-        /// встроенный источник отметок, по которому можно проверить правильность Z.
-        /// Модель может быть вовсе без уровней, и это штатная ситуация, а не ошибка:
-        /// возвращаем пустой массив, и подпись просто не будет показывать строку уровня.
-        /// </remarks>
-        public static LevelInfo[] ReadLevels(Navisworks.Document document)
-        {
-            var levels = new List<LevelInfo>();
-
-            if (document == null)
-            {
-                return levels.ToArray();
-            }
-
-            try
-            {
-                Navisworks.GridSystem system = document.Grids == null ? null : document.Grids.ActiveSystem;
-                if (system == null || system.Levels == null)
-                {
-                    return levels.ToArray();
-                }
-
-                foreach (Navisworks.GridLevel level in system.Levels)
-                {
-                    if (level != null)
-                    {
-                        levels.Add(new LevelInfo(level.DisplayName, level.Elevation));
-                    }
-                }
-            }
-            catch (System.Exception)
-            {
-                // Уровни не обязательны для работы плагина — просто не показываем их.
-            }
-
-            return levels.ToArray();
-        }
-
         /// <summary>
         /// Найти модель, которой принадлежит элемент — нужна для имени источника и единиц.
         /// </summary>
@@ -91,9 +53,7 @@ namespace NavisElevation.Navis
             return null;
         }
 
-        /// <summary>
-        /// Единицы модели-владельца; при неудаче — единицы первой модели, иначе миллиметры.
-        /// </summary>
+        /// <summary>Единицы модели-владельца; при неудаче — единицы первой модели, иначе миллиметры.</summary>
         public static LengthUnit ReadUnit(Navisworks.Document document, Navisworks.ModelItem item)
         {
             Navisworks.Model owner = FindOwningModel(document, item);

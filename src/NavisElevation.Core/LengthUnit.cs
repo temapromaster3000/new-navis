@@ -28,8 +28,13 @@ namespace NavisElevation.Core
     }
 
     /// <summary>
-    /// Перевод единиц Navisworks в метры и короткие подписи для подписи на экране.
+    /// Перевод единиц Navisworks в метры.
     /// </summary>
+    /// <remarks>
+    /// Коротких подписей единиц («м», «мм», «фт») здесь нет намеренно: отметка в
+    /// подписи всегда выводится в метрах, а сырое значение в единицах модели убрано,
+    /// поэтому подписывать было бы нечем.
+    /// </remarks>
     public static class LengthUnits
     {
         private static readonly Dictionary<LengthUnit, double> MetersPerUnit = new Dictionary<LengthUnit, double>
@@ -47,33 +52,11 @@ namespace NavisElevation.Core
             { LengthUnit.Microinches, 0.0000000254 }
         };
 
-        private static readonly Dictionary<LengthUnit, string> ShortNames = new Dictionary<LengthUnit, string>
-        {
-            { LengthUnit.Meters, "м" },
-            { LengthUnit.Centimeters, "см" },
-            { LengthUnit.Millimeters, "мм" },
-            { LengthUnit.Feet, "фт" },
-            { LengthUnit.Inches, "дюйм" },
-            { LengthUnit.Yards, "ярд" },
-            { LengthUnit.Kilometers, "км" },
-            { LengthUnit.Miles, "миля" },
-            { LengthUnit.Micrometers, "мкм" },
-            { LengthUnit.Mils, "мил" },
-            { LengthUnit.Microinches, "мкмдюйм" }
-        };
-
         /// <summary>Сколько метров в одной единице.</summary>
         public static double ToMeters(LengthUnit unit)
         {
             double factor;
             return MetersPerUnit.TryGetValue(unit, out factor) ? factor : 1.0;
-        }
-
-        /// <summary>Короткая подпись единицы для подписи на экране: «м», «мм», «фт».</summary>
-        public static string GetShortName(LengthUnit unit)
-        {
-            string name;
-            return ShortNames.TryGetValue(unit, out name) ? name : "?";
         }
     }
 }

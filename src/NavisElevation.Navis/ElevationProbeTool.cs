@@ -58,7 +58,6 @@ namespace NavisElevation.Navis
 
         private ProjectSettings _settings;
         private ElevationFormatter _formatter;
-        private LevelInfo[] _levels;
 
         /// <summary>
         /// Инструмент, который был активен до включения режима отметки.
@@ -292,7 +291,6 @@ namespace NavisElevation.Navis
             try
             {
                 EnsureFormatter(hit.ModelItem);
-                EnsureLevels();
 
                 var lines = new List<string>();
 
@@ -307,22 +305,12 @@ namespace NavisElevation.Navis
                     lines.Add(name);
                 }
 
-                // Сырое значение в единицах модели показываем рядом с метрами намеренно:
-                // это калибровка. Пока пользователь не сверил плагин с эталонным элементом,
-                // единственный способ понять, в каких единицах модель, — увидеть оба числа.
-                lines.Add("Отметка: " + _formatter.FormatElevationWithRaw(hit.Point.Z));
+                lines.Add("Отметка: " + _formatter.FormatMeters(hit.Point.Z));
 
                 BoundingBox3D box = hit.ModelItem.BoundingBox();
                 if (box != null && !box.IsEmpty)
                 {
                     lines.Add("Границы: " + _formatter.FormatMetersSpan(box.Min.Z, box.Max.Z));
-                }
-
-                LevelMatch match = LevelResolver.FindNearest(_levels, hit.Point.Z);
-                if (match != null)
-                {
-                    lines.Add("Уровень " + match.Level.Name + ": " + _formatter.FormatLevelElevation(match.Level.Elevation)
-                              + " (" + _formatter.FormatDelta(match.Delta) + ")");
                 }
 
                 Model owner = DocumentCatalog.FindOwningModel(Document, hit.ModelItem);
@@ -362,14 +350,6 @@ namespace NavisElevation.Navis
             if (_formatter == null || _formatter.Unit != unit || _formatter.Offset != Settings.ProjectOffset)
             {
                 _formatter = new ElevationFormatter(unit, Settings.ProjectOffset);
-            }
-        }
-
-        private void EnsureLevels()
-        {
-            if (_levels == null)
-            {
-                _levels = DocumentCatalog.ReadLevels(Document);
             }
         }
 
