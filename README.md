@@ -19,8 +19,9 @@
 - Подсветка элемента под курсором.
 - Калибровочное смещение отметки, если модель пришла не от проектного нуля.
 
-> Раздел «Возможности» описывает целевой функционал. Текущее состояние сборки
-> и что уже реализовано — в [docs/in-progress/element-elevation-mvp.md](docs/in-progress/element-elevation-mvp.md).
+> Раздел «Возможности» описывает целевой функционал. Что уже реализовано и проверено —
+> в [docs/realized/element-elevation-mvp.md](docs/realized/element-elevation-mvp.md),
+> что запланировано дальше — в папке [docs/in-progress](docs/in-progress).
 
 ## Требования
 
