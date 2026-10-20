@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-    Генерирует иконки кнопок ленты плагина Navis Elevation (16 и 32 px, PNG, прозрачный фон).
+    Генерирует иконки кнопок ленты плагина Navis Elevation (16 и 32 px, PNG, прозрачный фон)
+    и логотип для README (128 px).
 
 .DESCRIPTION
     Иконки рисуются программно (System.Drawing) в единой гамме: синий #0078D4 + серый + белый.
@@ -12,10 +13,12 @@
 
     Запуск:  powershell -File tools\make-icons.ps1
     Параметр -PreviewPath позволяет дополнительно сохранить контактный лист для визуальной проверки.
+    Параметр -LogoPath задаёт, куда положить логотип для README (по умолчанию docs\logo.png).
 #>
 param(
     [string]$OutputDir = (Join-Path $PSScriptRoot "..\src\NavisElevation.Navis\Resources"),
-    [string]$PreviewPath = ""
+    [string]$PreviewPath = "",
+    [string]$LogoPath = (Join-Path $PSScriptRoot "..\docs\logo.png")
 )
 
 $ErrorActionPreference = 'Stop'
@@ -164,6 +167,23 @@ foreach ($kind in $kinds) {
 }
 
 Write-Host ("Generated {0} icons in {1}" -f $generated.Count, $OutputDir)
+
+# --- Логотип для README ---
+#
+# Тот же знак отметки, но вчетверо крупнее: рисунок задан в координатах 32x32 и
+# масштабируется, поэтому лишних движений не нужно. Прозрачный фон, только синий
+# и серый - читается и на светлой, и на тёмной теме GitHub.
+if ($LogoPath) {
+    $logoDir = Split-Path -Parent $LogoPath
+    if ($logoDir -and -not (Test-Path -LiteralPath $logoDir)) {
+        New-Item -ItemType Directory -Path $logoDir -Force | Out-Null
+    }
+
+    $logo = New-Icon 'Elevation' 128
+    $logo.Save($LogoPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    $logo.Dispose()
+    Write-Host ("Logo saved: {0}" -f $LogoPath)
+}
 
 # --- Контактный лист для визуальной проверки ---
 if ($PreviewPath) {
