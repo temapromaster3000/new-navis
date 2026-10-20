@@ -48,6 +48,19 @@
     <Reference Include="System.Windows.Forms" />
 
     <!--
+      Update mechanism. Both are plain .NET Framework assemblies: they need no NuGet
+      package and nothing extra has to sit next to the plug-in. That matters, because
+      Navisworks may not resolve a second assembly placed beside the plug-in - and such
+      a failure is silent.
+
+      System.Web.Extensions - JavaScriptSerializer, the JSON parser of .NET Framework.
+      System.IO.Compression.FileSystem - ZipFile, for unpacking the downloaded release.
+    -->
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net.Http" />
+
+    <!--
       WPF for the settings window. Navisworks itself is a WPF application: its GUI assembly
       references PresentationFramework, PresentationCore and WindowsBase, so a plug-in hosted
       in that process can create WPF windows without dragging in a second UI stack.

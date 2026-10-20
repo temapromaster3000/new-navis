@@ -24,6 +24,7 @@ echo.
 
 set "SOLUTION=build\NavisElevation.sln"
 set "SOURCE_DIR=bin\Debug\Navis"
+set "UPDATER_DIR=bin\Debug\Updater"
 set "PLUGIN_NAME=NavisElevation"
 
 rem Navisworks 2021 auto-loads plug-ins only from the Plugins folder inside its
@@ -38,9 +39,15 @@ set "BUNDLE=%APPDATA%\Autodesk\ApplicationPlugins\%PLUGIN_NAME%.bundle"
 set "TARGET=%BUNDLE%\Contents\2021"
 set "PACKAGE_SOURCE=deploy\PackageContents.xml"
 
+rem The updater replaces the plug-in files once Navisworks has been closed. It is
+rem kept outside the bundle on purpose: the bundle is read by the Navisworks
+rem plug-in loader, and an extra file there is a risk we do not need.
+set "DATA_DIR=%APPDATA%\%PLUGIN_NAME%"
+
 echo [i] Project root: %CD%
 echo [i] Bundle:        %BUNDLE%
 echo [i] Target:        %TARGET%
+echo [i] Data folder:   %DATA_DIR%
 echo.
 
 if not exist "%PACKAGE_SOURCE%" (
@@ -56,7 +63,7 @@ if not exist "%SOLUTION%" (
     exit /b 1
 )
 
-echo [1/3] Building Navis Elevation (Debug, net48)...
+echo [1/4] Building Navis Elevation (Debug, net48)...
 dotnet build "%SOLUTION%" -c Debug --verbosity quiet
 if errorlevel 1 ( echo [ERROR] Build failed! & pause & exit /b 1 )
 echo [OK] Build successful
@@ -68,12 +75,19 @@ if not exist "%SOURCE_DIR%\%PLUGIN_NAME%.dll" (
     exit /b 1
 )
 
-echo [2/3] Preparing folders...
+if not exist "%UPDATER_DIR%\%PLUGIN_NAME%.Updater.exe" (
+    echo [ERROR] Updater build output not found: %CD%\%UPDATER_DIR%\%PLUGIN_NAME%.Updater.exe
+    pause
+    exit /b 1
+)
+
+echo [2/4] Preparing folders...
 if not exist "%BUNDLE%" ( mkdir "%BUNDLE%" & echo [OK] Created %BUNDLE% ) else ( echo [OK] Exists %BUNDLE% )
 if not exist "%TARGET%" ( mkdir "%TARGET%" & echo [OK] Created %TARGET% ) else ( echo [OK] Exists %TARGET% )
+if not exist "%DATA_DIR%" ( mkdir "%DATA_DIR%" & echo [OK] Created %DATA_DIR% ) else ( echo [OK] Exists %DATA_DIR% )
 echo.
 
-echo [3/3] Deploying plug-in...
+echo [3/4] Deploying plug-in...
 rem Navisworks holds these files while running, so retry for a few seconds.
 rem Only the single merged DLL is copied: NavisElevation.dll already contains the
 rem Core code, and a second assembly beside it risks failing to resolve on load.
@@ -149,8 +163,23 @@ if exist "%LEGACY%" (
     echo [OK] Removed obsolete folder %LEGACY%
 )
 
+echo [4/4] Deploying the updater...
+rem The updater replaces the plug-in files after Navisworks has been closed: the
+rem plug-in DLL is locked while Navisworks runs, so it cannot be overwritten from
+rem inside the process. It is kept next to the log and the settings, outside the
+rem bundle.
+copy /Y "%UPDATER_DIR%\%PLUGIN_NAME%.Updater.exe" "%DATA_DIR%\" >nul 2>nul
+if exist "%DATA_DIR%\%PLUGIN_NAME%.Updater.exe" (
+    echo [OK] Updater placed in %DATA_DIR%
+) else (
+    echo [ERROR] Could not copy the updater to %DATA_DIR%
+    pause
+    exit /b 1
+)
+
 echo [OK] Deployed to %TARGET%
 echo [OK] Bundle description at %BUNDLE%\PackageContents.xml
+echo [OK] Updater at %DATA_DIR%\%PLUGIN_NAME%.Updater.exe
 echo.
 
 echo ==========================================
