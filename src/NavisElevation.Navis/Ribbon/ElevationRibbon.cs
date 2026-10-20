@@ -39,6 +39,7 @@ namespace NavisElevation.Navis.Ribbon
     [Strings("NavisElevation.name")]
     [Command(PluginIds.ToggleCommandId, DisplayName = "Показать отметку", CanToggle = true,
         Icon = "Elevation16.png", LargeIcon = "Elevation32.png",
+        LoadForCanExecute = true,
         ToolTip = "Показать отметку элемента",
         ExtendedToolTip = "Включает режим показа отметки элемента.\r\n\r\n"
                         + "После включения наведите курсор на любой элемент модели — рядом с ним "
@@ -51,6 +52,9 @@ namespace NavisElevation.Navis.Ribbon
         ExtendedToolTip = "Открывает окно настроек: версия плагина и проверка обновлений.")]
     public class ElevationRibbon : CommandHandlerPlugin
     {
+        /// <summary>Последнее записанное состояние кнопок, чтобы не писать в лог каждый раз.</summary>
+        private static string _lastState;
+
         /// <summary>
         /// Сработает в момент, когда Navisworks впервые обратится к этому типу.
         /// </summary>
@@ -93,15 +97,47 @@ namespace NavisElevation.Navis.Ribbon
         {
             bool isToggle = string.Equals(commandId, PluginIds.ToggleCommandId, StringComparison.Ordinal);
 
+            // «Показать отметку» без открытой модели делать нечего, поэтому гасим.
+            // «Настройки плагина» от модели не зависят: версию плагина можно посмотреть
+            // и без неё.
+            bool enabled = !Autodesk.Navisworks.Api.Application.IsAutomated
+                           && (!isToggle || ProbeToggle.HasModel());
+
+            LogStateChange(commandId, isToggle, enabled);
+
             return new CommandState
             {
-                IsEnabled = !Autodesk.Navisworks.Api.Application.IsAutomated,
+                IsEnabled = enabled,
                 IsVisible = true,
                 IsChecked = isToggle && ProbeToggle.IsActive(),
                 OverrideDisplayName = isToggle && ProbeToggle.IsActive()
                     ? "Выключить отметку"
                     : "Показать отметку"
             };
+        }
+
+        /// <summary>
+        /// Записать в лог, что состояние кнопки изменилось.
+        /// </summary>
+        /// <remarks>
+        /// Само состояние Navisworks спрашивает часто, а писать каждый раз - значит
+        /// засорять лог. Поэтому пишем только при смене состояния: так видно, вызывает ли
+        /// Navisworks CanExecuteCommand и обновляет ли кнопку при открытии модели.
+        /// </remarks>
+        private static void LogStateChange(string commandId, bool isToggle, bool enabled)
+        {
+            string key = commandId + ":" + enabled;
+
+            if (string.Equals(key, _lastState, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _lastState = key;
+
+            DiagnosticLog.Info("Состояние кнопки «" + (isToggle ? "Показать отметку" : commandId)
+                               + "»: " + (enabled ? "активна" : "серая")
+                               + (isToggle && !enabled ? " (нет открытой модели)" : ""));
         }
     }
 }

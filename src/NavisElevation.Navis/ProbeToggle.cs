@@ -38,16 +38,45 @@ namespace NavisElevation.Navis
             }
         }
 
+        /// <summary>Открыта ли модель, которую вообще есть о чём показывать.</summary>
+        /// <remarks>
+        /// Проверять надо не документ, а модель. В Navisworks пустой документ «Без имени» -
+        /// это тоже документ, <c>Application.ActiveDocument</c> в нём не null, но моделей в
+        /// нём ноль. Отсюда и ошибка: кнопка считалась активной, а режим включался в
+        /// пустоте и ничего не находил.
+        /// </remarks>
+        public static bool HasModel()
+        {
+            try
+            {
+                Navisworks.Document document = Application.ActiveDocument;
+
+                return document != null
+                       && document.Models != null
+                       && document.Models.Count > 0;
+            }
+            catch (System.Exception)
+            {
+                return false;
+            }
+        }
+
         /// <summary>Переключить режим отметки: включить, а если включён — выключить.</summary>
         public static int Toggle()
         {
             DiagnosticLog.Info("Кнопка отметки нажата. " + DescribeEnvironment()
-                               + ", документ открыт: " + (Application.ActiveDocument != null));
+                               + ", модель открыта: " + HasModel());
 
             Navisworks.Document document = Application.ActiveDocument;
             if (document == null || document.Tool == null)
             {
                 DiagnosticLog.Warn("Документ не открыт — режим отметки не включается.");
+                return 1;
+            }
+
+            if (!HasModel())
+            {
+                DiagnosticLog.Warn("Нет открытой модели — режим отметки не включается.");
                 return 1;
             }
 
