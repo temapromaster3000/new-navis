@@ -3,7 +3,7 @@
 > **Статус: реализовано.** Вкладка **Navis Elevation** с кнопками «Показать отметку» и
 > «Настройки плагина» работает в Navisworks Manage 2021, проверена и выложена на GitHub.
 > Окно настроек и проверка обновлений вынесены в `docs/realized/settings-window.md` и
-> `docs/future/auto-update.md`.
+> `docs/in-progress/auto-update.md`.
 
 ## Цель
 
@@ -13,7 +13,7 @@
 было куда добавлять панели.
 
 Окно настроек и проверка обновлений вынесены в `docs/realized/settings-window.md` и
-`docs/future/auto-update.md`.
+`docs/in-progress/auto-update.md`.
 
 ## Что уже известно
 
