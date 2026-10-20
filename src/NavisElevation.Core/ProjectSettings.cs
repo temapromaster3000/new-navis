@@ -8,21 +8,36 @@ namespace NavisElevation.Core
     /// Настройки плагина, которые пользователь может поправить руками.
     /// </summary>
     /// <remarks>
-    /// Сейчас здесь одно поле — калибровочное смещение отметки. В API Navisworks нет
+    /// <para>
+    /// Сейчас здесь одно поле — смещение отметки по умолчанию. В API Navisworks нет
     /// базовой точки проекта, поэтому правильность отметки проверяется сверкой с
-    /// эталонным элементом, и разница между показанным и ожидаемым числом и есть это смещение.
-    ///
+    /// эталонным элементом, и разница между показанным и ожидаемым числом и есть это
+    /// смещение.
+    /// </para>
+    /// <para>
+    /// Это значение по умолчанию: оно применяется к моделям, у которых нет собственной
+    /// калибровки в <see cref="ProjectOffsetStore"/>. Сама калибровка настраивается
+    /// кнопкой на ленте и хранится отдельно для каждой модели.
+    /// </para>
+    /// <para>
     /// Формат файла простой, «ключ=значение», без библиотек и без JSON: настройка одна,
     /// а лишняя зависимость в .NET Framework-плагине — это лишний риск при загрузке.
     /// Любая ошибка чтения или записи молча сводится к значениям по умолчанию: плагин
     /// не должен падать из-за настроек.
+    /// </para>
     /// </remarks>
     public sealed class ProjectSettings
     {
         private const string OffsetKey = "ProjectOffset";
 
-        /// <summary>Смещение в единицах документа. По умолчанию ноль.</summary>
-        public double ProjectOffset { get; set; }
+        /// <summary>
+        /// Смещение отметки по умолчанию, в метрах. По умолчанию ноль.
+        /// </summary>
+        /// <remarks>
+        /// Ключ в файле остался прежним — <c>ProjectOffset</c>, — чтобы настройка,
+        /// заведённая в прошлых версиях плагина, продолжала работать.
+        /// </remarks>
+        public double DefaultOffset { get; set; }
 
         /// <summary>
         /// Путь к файлу настроек: <c>%APPDATA%\NavisElevation\settings.txt</c>.
@@ -79,7 +94,7 @@ namespace NavisElevation.Core
                     double parsed;
                     if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out parsed))
                     {
-                        settings.ProjectOffset = parsed;
+                        settings.DefaultOffset = parsed;
                     }
                 }
             }
