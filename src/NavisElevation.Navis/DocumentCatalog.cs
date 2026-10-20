@@ -19,6 +19,11 @@ namespace NavisElevation.Navis
         /// <remarks>
         /// Единицы в Navisworks задаются на уровне модели, а не документа, поэтому у
         /// элемента спрашиваем модель-владельца: поднимаемся по родителям до корня.
+        ///
+        /// Сравнение корня модели с родителем — по <c>InstanceGuid</c>, а не по ссылке:
+        /// обёртка <c>ModelItem</c> каждый раз новая, и сравнение ссылок всегда ложно.
+        /// Из-за этого модель-владелец не находился: в подписи не было строки «Модель»,
+        /// а калибровка сохранялась без Guid — только по пути к файлу.
         /// </remarks>
         public static Navisworks.Model FindOwningModel(Navisworks.Document document, Navisworks.ModelItem item)
         {
@@ -36,7 +41,7 @@ namespace NavisElevation.Navis
                 {
                     foreach (Navisworks.Model model in document.Models)
                     {
-                        if (ReferenceEquals(model.RootItem, ancestor))
+                        if (IsSameItem(model.RootItem, ancestor))
                         {
                             return model;
                         }
@@ -51,6 +56,29 @@ namespace NavisElevation.Navis
             }
 
             return null;
+        }
+
+        /// <summary>Один и тот же ли это элемент модели.</summary>
+        private static bool IsSameItem(Navisworks.ModelItem left, Navisworks.ModelItem right)
+        {
+            if (left == null || right == null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            try
+            {
+                return left.InstanceGuid == right.InstanceGuid;
+            }
+            catch (System.Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>Единицы модели-владельца; при неудаче — единицы первой модели, иначе миллиметры.</summary>
