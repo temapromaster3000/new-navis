@@ -103,10 +103,9 @@ Navisworks.
 
 ## 📦 Установка
 
-**Способ 1 — установщик (рекомендуется):** скачайте
-[`NavisElevation-1.0.0-setup.exe`](https://github.com/temapromaster3000/new-navis/releases)
-со страницы [Releases](https://github.com/temapromaster3000/new-navis/releases) и
-запустите. Прав администратора не нужно.
+**Способ 1 — установщик (рекомендуется):** на странице
+[Releases](https://github.com/temapromaster3000/new-navis/releases/latest) скачайте
+`NavisElevation-<версия>-setup.exe` и запустите. Прав администратора не нужно.
 
 Установщик кладёт плагин в
 `%APPDATA%\Autodesk\ApplicationPlugins\NavisElevation.bundle\`: описание бандла
