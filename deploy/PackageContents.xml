@@ -19,9 +19,10 @@
   * ProductCode - уникальный GUID. Менять при каждой новой публикации не нужно,
     но и повторять у другого плагина нельзя.
 
-  Папка en-US с ресурсами ленты здесь не нужна: она требуется только плагинам
-  с собственным XAML файлом ленты, а кнопка этого плагина живёт во встроенной
-  вкладке Add-Ins.
+  Рядом со сборкой обязательно лежат папки ru-RU и en-US с файлом разметки ленты
+  RibbonDefinition.xaml и файлом локализации NavisElevation.name. Navisworks ищет
+  их как файлы в языковой подпапке рядом с плагином, а не как ресурсы внутри
+  сборки, - без них вкладка Navis Elevation не появляется, молча и без ошибки.
 -->
 <ApplicationPackage SchemaVersion="1.0" Name="NavisElevation" AppVersion="1.0.0.0" ProductType="Application" Author="ADSK" ProductCode="{D2B51A53-C9A3-4A37-8FB6-CDEAAA943787}">
   <Components Description="Navisworks 2021 parts">
