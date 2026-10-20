@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavisElevation.Core", "..\s
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavisElevation.Navis", "..\src\NavisElevation.Navis\NavisElevation.Navis.csproj", "{A44C45FF-D10F-4473-9383-1A2E600959AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NavisElevation.Updater", "..\src\NavisElevation.Updater\NavisElevation.Updater.csproj", "{43E7D1F5-76CB-4EF6-BBFE-BFE286FE061F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{A44C45FF-D10F-4473-9383-1A2E600959AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A44C45FF-D10F-4473-9383-1A2E600959AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A44C45FF-D10F-4473-9383-1A2E600959AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43E7D1F5-76CB-4EF6-BBFE-BFE286FE061F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43E7D1F5-76CB-4EF6-BBFE-BFE286FE061F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43E7D1F5-76CB-4EF6-BBFE-BFE286FE061F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43E7D1F5-76CB-4EF6-BBFE-BFE286FE061F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

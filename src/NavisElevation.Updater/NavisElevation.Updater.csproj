@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>NavisElevation.Updater</AssemblyName>
+    <RootNamespace>NavisElevation.Updater</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <Description>Replaces the Navis Elevation plug-in files after Navisworks has been closed.</Description>
+  </PropertyGroup>
+
+</Project>

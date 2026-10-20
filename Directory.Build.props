@@ -46,4 +46,22 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
+
+  <!--
+    The updater is a separate console program that replaces the plug-in files once
+    Navisworks has been closed: the plug-in DLL is locked while Navisworks runs, so
+    it cannot be overwritten from inside the process.
+
+    net48 and x64, like the plug-in itself, and without any dependency: it has to
+    start from a plain double click and work on a machine where nothing is installed.
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NavisElevation.Updater'">
+    <TargetFramework>net48</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\Updater\</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
 </Project>
