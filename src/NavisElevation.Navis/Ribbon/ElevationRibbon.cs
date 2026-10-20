@@ -49,7 +49,15 @@ namespace NavisElevation.Navis.Ribbon
     [Command(PluginIds.SettingsCommandId, DisplayName = "Настройки плагина", CanToggle = false,
         Icon = "Settings16.png", LargeIcon = "Settings32.png",
         ToolTip = "Настройки плагина",
-        ExtendedToolTip = "Открывает окно настроек: версия плагина и проверка обновлений.")]
+        ExtendedToolTip = "Открывает окно настроек: версия плагина и описание работы.")]
+    [Command(PluginIds.CalibrateCommandId, DisplayName = "Калибровка", CanToggle = false,
+        Icon = "Calibrate16.png", LargeIcon = "Calibrate32.png",
+        ToolTip = "Калибровка отметки",
+        ExtendedToolTip = "Задаёт проектный ноль модели.\r\n\r\n"
+                        + "Выберите элемент, проектная отметка которого известна, и укажите её — "
+                        + "плагин посчитает сдвиг и применит его ко всем отметкам модели.\r\n\r\n"
+                        + "Калибровка хранится отдельно для каждой модели и сбрасывается "
+                        + "той же кнопкой.")]
     public class ElevationRibbon : CommandHandlerPlugin
     {
         /// <summary>Последнее записанное состояние кнопок, чтобы не писать в лог каждый раз.</summary>
@@ -79,6 +87,11 @@ namespace NavisElevation.Navis.Ribbon
         {
             DiagnosticLog.Info("Команда ленты вызвана: " + commandId);
 
+            // Handle главного окна запоминаем заранее: окна плагина открываются из
+            // потока ленты, а после их закрытия API Navisworks уже недоступен, а handle
+            // нужен, чтобы вернуть фокус в 3D-вид.
+            ViewFocus.RememberMainWindow();
+
             if (string.Equals(commandId, PluginIds.ToggleCommandId, StringComparison.Ordinal))
             {
                 return ProbeToggle.Toggle();
@@ -89,6 +102,11 @@ namespace NavisElevation.Navis.Ribbon
                 return SettingsView.Open();
             }
 
+            if (string.Equals(commandId, PluginIds.CalibrateCommandId, StringComparison.Ordinal))
+            {
+                return Calibration.CalibrationController.OpenMenu();
+            }
+
             DiagnosticLog.Warn("Неизвестная команда ленты: " + commandId);
             return 1;
         }
@@ -96,48 +114,79 @@ namespace NavisElevation.Navis.Ribbon
         public override CommandState CanExecuteCommand(string commandId)
         {
             bool isToggle = string.Equals(commandId, PluginIds.ToggleCommandId, StringComparison.Ordinal);
+            bool isCalibrate = string.Equals(commandId, PluginIds.CalibrateCommandId, StringComparison.Ordinal);
 
-            // «Показать отметку» без открытой модели делать нечего, поэтому гасим.
-            // «Настройки плагина» от модели не зависят: версию плагина можно посмотреть
-            // и без неё.
+            // Идёт ли сейчас выбор точки калибровки.
+            bool picking = Calibration.CalibrationSession.IsPicking;
+
+            // Состояния обеих кнопок считаются целиком, а не по той команде, которую
+            // спрашивают: иначе снимок состояния в логе скачет между тремя вариантами
+            // и засоряет файл тысячами одинаковых строк.
+            bool toggleChecked = ProbeToggle.IsActive() && !picking;
+            bool calibrateChecked = picking;
+
+            // «Показать отметку» и «Калибровка» без открытой модели делать нечего,
+            // поэтому гасим. «Настройки плагина» от модели не зависят: версию плагина
+            // можно посмотреть и без неё.
             bool enabled = !Autodesk.Navisworks.Api.Application.IsAutomated
-                           && (!isToggle || ProbeToggle.HasModel());
+                           && ((!isToggle && !isCalibrate) || ProbeToggle.HasModel());
 
-            LogStateChange(commandId, isToggle, enabled);
+            // Нажатой показывается та кнопка, которой сейчас заняты: во время выбора
+            // точки калибровки — «Калибровка», а не «Показать отметку». Инструмент у
+            // них один и тот же, поэтому без этой поправки нажатыми выглядели бы обе.
+            bool checkedState = isToggle
+                ? toggleChecked
+                : isCalibrate && calibrateChecked;
 
-            return new CommandState
+            LogStateChange(toggleChecked, calibrateChecked, enabled);
+
+            var state = new CommandState
             {
                 IsEnabled = enabled,
                 IsVisible = true,
-                IsChecked = isToggle && ProbeToggle.IsActive(),
-                OverrideDisplayName = isToggle && ProbeToggle.IsActive()
-                    ? "Выключить отметку"
-                    : "Показать отметку"
+                IsChecked = checkedState
             };
+
+            // Название переопределяем только у переключателя: у остальных кнопок
+            // название берётся из атрибута, разметки и файла локализации.
+            if (isToggle)
+            {
+                state.OverrideDisplayName = ProbeToggle.IsActive()
+                    ? "Выключить отметку"
+                    : "Показать отметку";
+            }
+
+            return state;
         }
 
         /// <summary>
-        /// Записать в лог, что состояние кнопки изменилось.
+        /// Записать в лог, что состояние кнопок изменилось.
         /// </summary>
         /// <remarks>
-        /// Само состояние Navisworks спрашивает часто, а писать каждый раз - значит
-        /// засорять лог. Поэтому пишем только при смене состояния: так видно, вызывает ли
-        /// Navisworks CanExecuteCommand и обновляет ли кнопку при открытии модели.
+        /// <para>
+        /// Navisworks спрашивает состояние команд часто, и писать каждый раз — значит
+        /// засорять лог: за одну минуту набегали тысячи одинаковых строк.
+        /// </para>
+        /// <para>
+        /// Сравнивается снимок состояния всех кнопок сразу. Когда состояние хранилось в
+        /// одном поле, команды затирали друг друга, и условие «состояние изменилось»
+        /// срабатывало каждый раз.
+        /// </para>
         /// </remarks>
-        private static void LogStateChange(string commandId, bool isToggle, bool enabled)
+        private static void LogStateChange(bool toggleChecked, bool calibrateChecked, bool enabled)
         {
-            string key = commandId + ":" + enabled;
+            string snapshot = "отметка=" + toggleChecked
+                              + ", калибровка=" + calibrateChecked
+                              + ", доступна=" + enabled;
 
-            if (string.Equals(key, _lastState, StringComparison.Ordinal))
+            if (string.Equals(snapshot, _lastState, StringComparison.Ordinal))
             {
                 return;
             }
 
-            _lastState = key;
+            _lastState = snapshot;
 
-            DiagnosticLog.Info("Состояние кнопки «" + (isToggle ? "Показать отметку" : commandId)
-                               + "»: " + (enabled ? "активна" : "серая")
-                               + (isToggle && !enabled ? " (нет открытой модели)" : ""));
+            DiagnosticLog.Info("Состояние кнопок: " + snapshot);
         }
     }
 }

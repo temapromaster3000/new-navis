@@ -20,3 +20,6 @@ NavisElevation.ToggleCommand.DisplayName=
 
 NavisElevation.SettingsCommand.DisplayName=
 Настройки плагина
+
+NavisElevation.CalibrateCommand.DisplayName=
+Калибровка

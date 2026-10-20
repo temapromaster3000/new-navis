@@ -2,7 +2,6 @@ using System;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
 using System.Windows.Media;
 using NavisElevation.Core;
 
@@ -55,7 +54,7 @@ namespace NavisElevation.Navis.Views
             try
             {
                 var window = new SettingsView();
-                AttachOwner(window);
+                NavisWindow.AttachOwner(window);
 
                 window.ShowDialog();
                 return 0;
@@ -64,35 +63,6 @@ namespace NavisElevation.Navis.Views
             {
                 DiagnosticLog.Error("Не удалось открыть окно настроек.", exception);
                 return 2;
-            }
-        }
-
-        /// <summary>
-        /// Сделать окно дочерним для главного окна Navisworks, иначе оно откроется сзади.
-        /// </summary>
-        /// <remarks>
-        /// У WPF свойство <c>Owner</c> принимает объект <c>Window</c>, а не дескриптор
-        /// <c>HWND</c>, поэтому родителя задаём через <c>WindowInteropHelper</c>: это
-        /// единственный способ привязать окно к нативному родителю.
-        /// </remarks>
-        private static void AttachOwner(Window window)
-        {
-            try
-            {
-                Autodesk.Navisworks.Api.ApplicationParts.IApplicationGui gui =
-                    Autodesk.Navisworks.Api.Application.Gui;
-
-                if (gui == null || gui.MainWindow == null)
-                {
-                    DiagnosticLog.Warn("Главное окно Navisworks недоступно — окно откроется без родителя.");
-                    return;
-                }
-
-                new WindowInteropHelper(window).Owner = gui.MainWindow.Handle;
-            }
-            catch (Exception exception)
-            {
-                DiagnosticLog.Warn("Не удалось привязать окно к главному окну Navisworks: " + exception.Message);
             }
         }
 

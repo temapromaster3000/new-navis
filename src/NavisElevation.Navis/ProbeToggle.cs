@@ -92,15 +92,62 @@ namespace NavisElevation.Navis
             return Activate(document);
         }
 
+        /// <summary>
+        /// Включить режим отметки, если он ещё не включён.
+        /// </summary>
+        /// <remarks>
+        /// Нужен калибровке: режим выбора точки живёт в том же инструменте, что и
+        /// показ отметки, а включается отдельной кнопкой на ленте.
+        /// </remarks>
+        public static int EnsureActive()
+        {
+            if (IsActive())
+            {
+                return 0;
+            }
+
+            Navisworks.Document document = Application.ActiveDocument;
+
+            if (document == null || document.Tool == null)
+            {
+                return 1;
+            }
+
+            return Activate(document);
+        }
+
+        /// <summary>
+        /// Перевключить инструмент плагина, не теряя запомненный предыдущий.
+        /// </summary>
+        /// <remarks>
+        /// Нужен как последний довод, когда фокус в 3D-вид перевести не удалось:
+        /// Navisworks при переключении инструмента сам возвращает фокус в вид.
+        /// </remarks>
+        public static int Reactivate()
+        {
+            Navisworks.Document document = Application.ActiveDocument;
+
+            if (document == null || document.Tool == null)
+            {
+                return 1;
+            }
+
+            return Activate(document);
+        }
+
         /// <summary>Включить режим отметки.</summary>
-        private static int Activate(Navisworks.Document document)
+        internal static int Activate(Navisworks.Document document)
         {
             try
             {
                 Navisworks.Tool previousTool = document.Tool.Value;
 
+                // Handle главного окна запоминаем заранее: после закрытия окон плагина
+                // API Navisworks уже недоступен, а handle нужен, чтобы вернуть фокус.
+                ViewFocus.RememberMainWindow();
+
                 DiagnosticLog.Info("Включаю режим отметки. Предыдущий инструмент: " + previousTool
-                                  + ", ищу инструмент плагина: " + PluginIds.ToolPluginFullId);
+                                   + ", ищу инструмент плагина: " + PluginIds.ToolPluginFullId);
 
                 // Экземпляр инструмента обязан создавать Navisworks, а не мы.
                 // Базовый класс Plugin хранит ссылку на PluginRecord, и у объекта,
@@ -126,7 +173,13 @@ namespace NavisElevation.Navis
 
                 // Инструмент создан Navisworks, поэтому передать ему предыдущий инструмент
                 // в конструктор невозможно — отдаём через статическое поле.
-                ElevationProbeTool.PendingPreviousTool = previousTool;
+                // Переключение инструмента на сам наш не считается новым предыдущим:
+                // иначе при перевключении терялся бы инструмент, который был до нас.
+                if (previousTool != Navisworks.Tool.CustomToolPlugin)
+                {
+                    ElevationProbeTool.PendingPreviousTool = previousTool;
+                }
+
                 ElevationProbeTool.ResetEmptyReport();
 
                 document.Tool.SetCustomToolPlugin(tool);
@@ -137,7 +190,7 @@ namespace NavisElevation.Navis
                 bool focused = ViewFocus.FocusActiveView(Application.Gui.MainWindow.Handle);
                 DiagnosticLog.Info(focused
                     ? "Фокус передан в 3D-вид, Esc будет работать."
-                    : "Окно 3D-вида не найдено, Esc сработает после клика в вид.");
+                    : "Фокус в 3D-вид не перешёл, Esc сработает после клика в вид.");
 
                 return 0;
             }
@@ -151,6 +204,11 @@ namespace NavisElevation.Navis
         /// <summary>Вернуть инструмент, который был активен до включения режима.</summary>
         public static void RestorePreviousTool()
         {
+            // Режим выключили — значит, и выбор точки калибровки отменяется. Иначе
+            // состояние «идёт калибровка» залипнет, и кнопка «Показать отметку» не
+            // будет подсвечиваться при следующем включении.
+            Calibration.CalibrationSession.End();
+
             try
             {
                 Navisworks.Document document = Application.ActiveDocument;

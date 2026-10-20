@@ -57,5 +57,14 @@ namespace NavisElevation.Navis
 
         /// <summary>Кнопка «Настройки» на собственной вкладке.</summary>
         public const string SettingsCommandId = "NavisElevation.SettingsCommand";
+
+        /// <summary>
+        /// Кнопка «Калибровка» на собственной вкладке.
+        /// </summary>
+        /// <remarks>
+        /// Этот id обязан совпадать с атрибутом <c>Id</c> кнопки в разметке. Кнопка
+        /// открывает окно калибровки: задать новую калибровку или сбросить текущую.
+        /// </remarks>
+        public const string CalibrateCommandId = "NavisElevation.CalibrateCommand";
     }
 }

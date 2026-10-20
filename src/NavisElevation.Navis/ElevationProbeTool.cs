@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Autodesk.Navisworks.Api;
 using Autodesk.Navisworks.Api.Plugins;
 using NavisElevation.Core;
+using NavisElevation.Navis.Calibration;
+using NavisElevation.Navis.Views;
 using Navisworks = Autodesk.Navisworks.Api;
 
 namespace NavisElevation.Navis
@@ -62,7 +64,15 @@ namespace NavisElevation.Navis
         private static readonly Color ShadowColor = new Color(0.0, 0.0, 0.0);
         private static readonly Color TextColor = new Color(1.0, 0.94, 0.55);
 
-        private ProjectSettings _settings;
+        /// <summary>
+        /// Цвет главной строки подписи в режиме калибровки.
+        /// </summary>
+        /// <remarks>
+        /// Красным: в этом режиме плагин не показывает отметку, а просит выбрать
+        /// точку, и спутать это с обычной работой нельзя.
+        /// </remarks>
+        private static readonly Color AccentColor = new Color(1.0, 0.28, 0.28);
+
         private ElevationFormatter _formatter;
 
         /// <summary>
@@ -108,31 +118,6 @@ namespace NavisElevation.Navis
         /// <summary>
         /// Настройки плагина, прочитанные из файла один раз за сеанс работы режима.
         /// </summary>
-        private ProjectSettings Settings
-        {
-            get
-            {
-                if (_settings == null)
-                {
-                    try
-                    {
-                        _settings = ProjectSettings.Load(null);
-                    }
-                    catch (Exception exception)
-                    {
-                        DiagnosticLog.Error("Не удалось прочитать настройки, беру значения по умолчанию.", exception);
-                    }
-
-                    if (_settings == null)
-                    {
-                        _settings = new ProjectSettings();
-                    }
-                }
-
-                return _settings;
-            }
-        }
-
         private string[] _lines;
 
         private int _lastPickX = -10000;
@@ -142,6 +127,49 @@ namespace NavisElevation.Navis
         private ModelItem _highlightedItem;
         private bool _hadItem;
         private TextFontInfo _font;
+
+        /// <summary>
+        /// Последний найденный элемент и высота точки попадания в него.
+        /// </summary>
+        /// <remarks>
+        /// Нужны, чтобы пересобрать подпись без нового движения мыши: после калибровки
+        /// число в подписи меняется сразу, а ждать, пока пользователь дёрнет мышью,
+        /// незачем. Хранится только высота: <c>Point3D</c> в API Navisworks — класс,
+        /// а не структура, и держать ссылку на него в поле рискованно.
+        /// </remarks>
+        private ModelItem _lastItem;
+        private double _lastZ;
+
+        /// <summary>
+        /// Номер строки подписи, которую рисуем красным; -1 — рисуем всё жёлтым.
+        /// </summary>
+        private int _accentLine = -1;
+
+        /// <summary>
+        /// Пропустить следующий <c>MouseUp</c>.
+        /// </summary>
+        /// <remarks>
+        /// Клик в режиме калибровки обрабатывается в <c>MouseDown</c>, и Navisworks
+        /// присылает следом <c>MouseUp</c> того же клика. Если не пропустить его,
+        /// правый клик выключил бы режим сразу после выбора точки.
+        /// </remarks>
+        private bool _ignoreMouseUp;
+
+        /// <summary>
+        /// Просить следующее движение мыши пересобрать подпись, даже если курсор не
+        /// двигался.
+        /// </summary>
+        private static bool _forcePick;
+
+        /// <summary>
+        /// Экземпляр инструмента, который сейчас работает.
+        /// </summary>
+        /// <remarks>
+        /// Экземпляр создаёт Navisworks, ссылку на него извне получить нельзя, поэтому
+        /// инструмент запоминает себя сам. Нужен, чтобы после калибровки обновить
+        /// подпись, не дожидаясь нового события мыши.
+        /// </remarks>
+        internal static ElevationProbeTool Active { get; private set; }
 
         /// <summary>
         /// Обязателен: Navisworks создаёт плагин через <c>Activator.CreateInstance</c>.
@@ -154,6 +182,7 @@ namespace NavisElevation.Navis
         /// </remarks>
         public ElevationProbeTool()
         {
+            Active = this;
         }
 
         public override bool MouseMove(View view, KeyModifiers modifiers, int x, int y, double timeOffset)
@@ -169,6 +198,19 @@ namespace NavisElevation.Navis
 
         public override bool KeyDown(View view, KeyModifiers modifiers, ushort key, double timeOffset)
         {
+            if (CalibrationSession.IsPicking)
+            {
+                // В режиме выбора точки Esc отменяет выбор. Других клавиш здесь нет:
+                // Enter до плагина не доходит — его перехватывает сам Navisworks.
+                if (key == EscapeKey)
+                {
+                    CancelPicking(view);
+                    return true;
+                }
+
+                return false;
+            }
+
             if (key == EscapeKey)
             {
                 Deactivate(view, "Esc");
@@ -178,8 +220,38 @@ namespace NavisElevation.Navis
             return false;
         }
 
+        public override bool MouseDown(View view, KeyModifiers modifiers, ushort button, int x, int y, double timeOffset)
+        {
+            if (!CalibrationSession.IsPicking)
+            {
+                return false;
+            }
+
+            DiagnosticLog.Info("Клик в режиме калибровки, кнопка " + button + ".");
+
+            // Нумерация кнопок мыши в Navisworks не документирована: левая приходит не
+            // как 0, и проверка на ноль отбрасывала настоящий клик молча. Поэтому берём
+            // любую кнопку, кроме правой, а значение пишем в лог.
+            if (button == RightMouseButton)
+            {
+                return false;
+            }
+
+            HandleCalibrationClick(view, x, y);
+
+            // true — клик обработан нами, камера поворачиваться не должна.
+            return true;
+        }
+
         public override bool MouseUp(View view, KeyModifiers modifiers, ushort button, int x, int y, double timeOffset)
         {
+            // Эхо того же клика, которым только что выбрана точка калибровки.
+            if (_ignoreMouseUp)
+            {
+                _ignoreMouseUp = false;
+                return false;
+            }
+
             if (button == RightMouseButton)
             {
                 Deactivate(view, "правая кнопка мыши");
@@ -194,6 +266,7 @@ namespace NavisElevation.Navis
             // Уводим курсор из вида — убираем подпись, чтобы она не «зависла» на экране.
             ClearCaption();
             ClearHighlight();
+            _lastItem = null;
             RequestRedraw(view);
             return false;
         }
@@ -216,7 +289,6 @@ namespace NavisElevation.Navis
                 for (int pass = 0; pass < 2; pass++)
                 {
                     bool shadow = pass == 0;
-                    graphics.Color(shadow ? ShadowColor : TextColor, 1.0);
 
                     int dx = shadow ? 1 : 0;
 
@@ -230,6 +302,14 @@ namespace NavisElevation.Navis
                         {
                             continue;
                         }
+
+                        // Цвет задаётся перед каждой строкой: главная строка в режиме
+                        // калибровки красная, остальные — жёлтые.
+                        Color color = shadow
+                            ? ShadowColor
+                            : (i == _accentLine ? AccentColor : TextColor);
+
+                        graphics.Color(color, 1.0);
 
                         // Координаты в Text2D отсчитываются от нижнего левого угла окна, и y растёт
                         // вверх: 0 — низ, view.Height — верх. Верхний край подписи — это
@@ -261,6 +341,17 @@ namespace NavisElevation.Navis
 
         private bool ShouldPick(int x, int y)
         {
+            // После калибровки подпись обязана смениться сразу, даже если курсор не
+            // двигался: иначе старая отметка останется на экране до первого движения мыши.
+            if (_forcePick)
+            {
+                _forcePick = false;
+                _lastPickX = x;
+                _lastPickY = y;
+                _lastPickTime = DateTime.UtcNow;
+                return true;
+            }
+
             int dx = x - _lastPickX;
             int dy = y - _lastPickY;
 
@@ -294,7 +385,7 @@ namespace NavisElevation.Navis
                 hit = null;
             }
 
-            if (hit == null || hit.ModelItem == null)
+            if (hit == null || hit.ModelItem == null || hit.Point == null)
             {
                 // Курсор в пустоте: снимаем подпись, чтобы не показывать чужие данные.
                 if (_hadItem)
@@ -314,13 +405,29 @@ namespace NavisElevation.Navis
 
                 ClearCaption();
                 ClearHighlight();
+
+                // Элемента под курсором нет: сбрасываем и его, иначе Enter подтвердил бы
+                // точку, найденную раньше, а не ту, что под курсором сейчас.
+                _lastItem = null;
+
                 RequestRedraw(view);
                 return;
             }
 
             _hadItem = true;
 
-            BuildCaption(hit);
+            _lastItem = hit.ModelItem;
+            _lastZ = hit.Point.Z;
+
+            if (CalibrationSession.IsPicking)
+            {
+                BuildPickCaption(hit.ModelItem, hit.Point.Z);
+            }
+            else
+            {
+                BuildCaption(hit.ModelItem, hit.Point.Z);
+            }
+
             UpdateHighlight(hit.ModelItem);
             RequestRedraw(view);
         }
@@ -332,18 +439,30 @@ namespace NavisElevation.Navis
         /// Параметров вида и координат здесь нет намеренно: подпись прибита к углу, её
         /// позиция не зависит от того, где находится курсор.
         /// </remarks>
-        private void BuildCaption(PickItemResult hit)
+        private void BuildCaption(ModelItem item, double z)
         {
             try
             {
-                EnsureFormatter(hit.ModelItem);
+                EnsureFormatter(item);
 
                 var lines = new List<string>();
+                int accent = -1;
 
-                string name = hit.ModelItem.DisplayName;
+                // Калибровка сдвигает все отметки модели, поэтому об этом надо сказать
+                // прямо и первым: иначе число выглядит как ошибка. Строка идёт
+                // красным — так её не спутать с обычной подписью.
+                bool calibrated = CalibrationStore.IsCalibrated(Document);
+
+                if (calibrated)
+                {
+                    lines.Add("Отметка откалибрована");
+                    accent = 0;
+                }
+
+                string name = item.DisplayName;
                 if (string.IsNullOrEmpty(name))
                 {
-                    name = hit.ModelItem.ClassDisplayName;
+                    name = item.ClassDisplayName;
                 }
 
                 if (!string.IsNullOrEmpty(name))
@@ -351,21 +470,23 @@ namespace NavisElevation.Navis
                     lines.Add(name);
                 }
 
-                lines.Add("Отметка: " + _formatter.FormatMeters(hit.Point.Z));
+                lines.Add("Отметка: " + _formatter.FormatMeters(z));
 
-                BoundingBox3D box = hit.ModelItem.BoundingBox();
+                if (calibrated)
+                {
+                    lines.Add("Смещение: " + NavisWindow.FormatMeters(_formatter.Offset));
+                }
+
+                BoundingBox3D box = item.BoundingBox();
                 if (box != null && !box.IsEmpty)
                 {
                     lines.Add("Границы: " + _formatter.FormatMetersSpan(box.Min.Z, box.Max.Z));
                 }
 
-                Model owner = DocumentCatalog.FindOwningModel(Document, hit.ModelItem);
-                string modelName = DocumentCatalog.ReadModelName(owner);
-                if (!string.IsNullOrEmpty(modelName))
-                {
-                    lines.Add("Модель: " + modelName);
-                }
+                // Строка «Модель» убрана: имя файла модели-источника проектировщику
+                // ничего не говорит, а место в подписи занимает.
 
+                _accentLine = accent;
                 _lines = lines.ToArray();
             }
             catch (Exception)
@@ -374,13 +495,189 @@ namespace NavisElevation.Navis
             }
         }
 
+        /// <summary>
+        /// Собрать подпись режима выбора точки калибровки.
+        /// </summary>
+        /// <remarks>
+        /// В режиме калибровки обычная подпись не подходит: она показывала бы отметку
+        /// как будто всё в порядке, а пользователь сейчас не смотрит на отметку, а
+        /// выбирает точку, отметка которой ему известна.
+        /// </remarks>
+        private void BuildPickCaption(ModelItem item, double z)
+        {
+            try
+            {
+                EnsureFormatter(item);
+
+                var lines = new List<string>
+                {
+                    "Выберите точку калибровки",
+                    "Отметка сейчас: " + _formatter.FormatMeters(z)
+                };
+
+                string name = item.DisplayName;
+                if (string.IsNullOrEmpty(name))
+                {
+                    name = item.ClassDisplayName;
+                }
+
+                if (!string.IsNullOrEmpty(name))
+                {
+                    lines.Add(name);
+                }
+
+                lines.Add("ЛКМ — выбрать точку, Esc — отмена");
+
+                // Главная строка режима калибровки рисуется красным.
+                _accentLine = 0;
+                _lines = lines.ToArray();
+            }
+            catch (Exception)
+            {
+                ClearCaption();
+            }
+        }
+
+        /// <summary>
+        /// Обработать клик в режиме выбора точки калибровки.
+        /// </summary>
+        private void HandleCalibrationClick(View view, int x, int y)
+        {
+            PickItemResult hit = null;
+
+            try
+            {
+                hit = view.PickItemFromPoint(x, y);
+            }
+            catch (Exception exception)
+            {
+                DiagnosticLog.Error("PickItemFromPoint бросил исключение при выборе точки калибровки.", exception);
+                hit = null;
+            }
+
+            if (hit == null || hit.ModelItem == null || hit.Point == null)
+            {
+                DiagnosticLog.Warn("Клик в режиме калибровки не попал в элемент — жду следующего клика.");
+                return;
+            }
+
+            HandleCalibrationPick(view, hit.ModelItem, hit.Point.Z);
+
+            // Следом придёт MouseUp того же клика — его надо пропустить, иначе правый
+            // клик выключит режим сразу после выбора точки.
+            _ignoreMouseUp = true;
+        }
+
+        /// <summary>
+        /// Сделать образец точки калибровки и открыть окно ввода проектной отметки.
+        /// </summary>
+        private void HandleCalibrationPick(View view, ModelItem item, double z)
+        {
+            try
+            {
+                EnsureFormatter(item);
+
+                Model owner = DocumentCatalog.FindOwningModel(Document, item);
+
+                var sample = new CalibrationSample
+                {
+                    RawZ = z,
+                    RawMeters = _formatter.ToMeters(z),
+                    CurrentOffset = _formatter.Offset,
+                    ModelGuid = owner == null ? string.Empty : owner.Guid.ToString(),
+                    ModelName = DocumentCatalog.ReadModelName(owner),
+                    ModelPath = CalibrationStore.DocumentPath(Document)
+                };
+
+                CalibrationSession.SetSample(sample);
+                CalibrationSession.End();
+
+                DiagnosticLog.Info("Точка калибровки выбрана: " + sample.Describe());
+
+                ClearCaption();
+                RequestRedraw(view);
+
+                // Окно ввода открывается прямо здесь, из обработчика мыши Navisworks.
+                // Отложенный вызов через диспетчер не годится: очередь сообщений вне
+                // модальных окон Navisworks не качает, и окно просто не появлялось.
+                CalibrationController.OpenEntry(sample);
+            }
+            catch (Exception exception)
+            {
+                CalibrationSession.End();
+                DiagnosticLog.Error("Не удалось обработать выбор точки калибровки.", exception);
+            }
+        }
+
+        /// <summary>Отменить выбор точки калибровки по Esc.</summary>
+        private void CancelPicking(View view)
+        {
+            CalibrationSession.End();
+            DiagnosticLog.Info("Выбор точки калибровки отменён: Esc.");
+
+            ClearCaption();
+            ClearHighlight();
+            RequestRedraw(view);
+        }
+
+        /// <summary>
+        /// Обновить подпись после изменения калибровки.
+        /// </summary>
+        /// <remarks>
+        /// Подпись пересобирается сразу, без ожидания нового движения мыши: иначе
+        /// старая отметка висела бы на экране и вводила в заблуждение.
+        /// </remarks>
+        internal static void RefreshCaption()
+        {
+            _forcePick = true;
+
+            ElevationProbeTool tool = Active;
+
+            if (tool != null)
+            {
+                tool.RebuildCaption();
+            }
+
+            try
+            {
+                Navisworks.Document document = Application.ActiveDocument;
+
+                if (document != null && document.ActiveView != null)
+                {
+                    document.ActiveView.RequestDelayedRedraw(ViewRedrawRequests.OverlayRender);
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        /// <summary>Пересобрать подпись по последнему найденному элементу.</summary>
+        private void RebuildCaption()
+        {
+            if (_lastItem == null)
+            {
+                return;
+            }
+
+            if (CalibrationSession.IsPicking)
+            {
+                BuildPickCaption(_lastItem, _lastZ);
+            }
+            else
+            {
+                BuildCaption(_lastItem, _lastZ);
+            }
+        }
+
         private void EnsureFormatter(ModelItem item)
         {
             LengthUnit unit = DocumentCatalog.ReadUnit(Document, item);
+            double offset = CalibrationStore.ReadOffset(Document);
 
-            if (_formatter == null || _formatter.Unit != unit || _formatter.Offset != Settings.ProjectOffset)
+            if (_formatter == null || _formatter.Unit != unit || _formatter.Offset != offset)
             {
-                _formatter = new ElevationFormatter(unit, Settings.ProjectOffset);
+                _formatter = new ElevationFormatter(unit, offset);
             }
         }
 
@@ -469,6 +766,12 @@ namespace NavisElevation.Navis
         private void Deactivate(View view, string reason)
         {
             DiagnosticLog.Info("Режим отметки выключен: " + reason);
+
+            // Выбор точки калибровки тоже отменяется: иначе состояние «идёт калибровка»
+            // осталось бы навсегда, и кнопка «Показать отметку» перестала бы
+            // подсвечиваться даже при включённом режиме.
+            CalibrationSession.End();
+
             ClearCaption();
             ClearHighlight();
             RequestRedraw(view);

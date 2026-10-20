@@ -46,13 +46,37 @@
 
     <RibbonPanel x:Uid="NavisElevationElevationPanel">
       <RibbonPanelSource x:Uid="NavisElevationElevationPanelSource" KeyTip="E" Title="Отметка">
+        <!--
+          IsCheckable обязателен: без него кнопка в принципе не может показать
+          нажатое состояние, и IsChecked, который плагин возвращает из
+          CanExecuteCommand, лента не рисует. Так сделано у встроенных
+          переключаемых кнопок Navisworks - см. RenderTab.xaml в папке установки.
+        -->
         <local:NWRibbonButton x:Uid="NavisElevationToggleButton"
                               Id="NavisElevation.ToggleCommand"
                               Orientation="Vertical"
                               Size="Large"
                               ShowText="True"
+                              IsCheckable="True"
                               Text="Показать отметку"
                               KeyTip="EP" />
+      </RibbonPanelSource>
+    </RibbonPanel>
+
+    <!--
+      Панель калибровки идёт после панели отметки: калибровка настраивает саму
+      отметку, поэтому логичнее видеть её справа.
+    -->
+    <RibbonPanel x:Uid="NavisElevationCalibrationPanel">
+      <RibbonPanelSource x:Uid="NavisElevationCalibrationPanelSource" KeyTip="C" Title="Калибровка">
+        <local:NWRibbonButton x:Uid="NavisElevationCalibrationButton"
+                              Id="NavisElevation.CalibrateCommand"
+                              Orientation="Vertical"
+                              Size="Large"
+                              ShowText="True"
+                              IsCheckable="True"
+                              Text="Калибровка"
+                              KeyTip="C1" />
       </RibbonPanelSource>
     </RibbonPanel>
 
