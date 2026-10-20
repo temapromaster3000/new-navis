@@ -187,10 +187,10 @@ namespace NavisElevation.Navis
                 // Клавиатурный фокус после нажатия кнопки остаётся на ленте, и Esc до
                 // плагина не доходит. Возвращаем фокус в 3D-вид, чтобы режим можно было
                 // выключить сразу, не кликая в вид.
-                bool focused = ViewFocus.FocusActiveView(Application.Gui.MainWindow.Handle);
-                DiagnosticLog.Info(focused
-                    ? "Фокус передан в 3D-вид, Esc будет работать."
-                    : "Фокус в 3D-вид не перешёл, Esc сработает после клика в вид.");
+                //
+                // Своей строки в лог тут нет: ViewFocus сам пишет, чем закончился
+                // перенос фокуса. Вторая строка о том же самом только мешала читать лог.
+                ViewFocus.FocusActiveView(Application.Gui.MainWindow.Handle);
 
                 return 0;
             }

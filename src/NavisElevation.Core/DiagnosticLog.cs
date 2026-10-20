@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace NavisElevation.Core
@@ -191,11 +192,33 @@ namespace NavisElevation.Core
         /// <summary>
         /// Версия сборки плагина — та же строка, что в <c>Version.txt</c>.
         /// </summary>
+        /// <remarks>
+        /// Берётся <c>InformationalVersion</c>, от неё отрезается всё после знака «+»:
+        /// сборка SDK дописывает туда хеш коммита, а в шапке лога он только мешает.
+        /// Раньше здесь брался <c>AssemblyVersion</c>, и в шапке было видно «1.0.0.0»
+        /// вместо «1.0.0» — как в окне настроек.
+        /// </remarks>
         private static string PluginVersion()
         {
             try
             {
-                System.Reflection.AssemblyName name = typeof(DiagnosticLog).Assembly.GetName();
+                System.Reflection.Assembly assembly = typeof(DiagnosticLog).Assembly;
+
+                var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+                if (informational != null && !string.IsNullOrWhiteSpace(informational.InformationalVersion))
+                {
+                    string version = informational.InformationalVersion;
+                    int plus = version.IndexOf('+');
+
+                    if (plus > 0)
+                    {
+                        version = version.Substring(0, plus);
+                    }
+
+                    return version;
+                }
+
+                System.Reflection.AssemblyName name = assembly.GetName();
                 return name.Version == null ? "unknown" : name.Version.ToString();
             }
             catch (Exception)
