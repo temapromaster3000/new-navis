@@ -109,9 +109,16 @@ namespace NavisElevation.Navis.Views
 
             panel.Children.Add(new TextBlock
             {
-                Text = "Версия " + CurrentVersion(),
-                Margin = new Thickness(0, 6, 0, 0),
-                Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55))
+                Margin = new Thickness(0, 10, 0, 0),
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55)),
+                Text = "Показывает отметку элемента под курсором прямо в 3D-виде."
+                     + Environment.NewLine
+                     + "Включается кнопкой «Показать отметку» на вкладке Navis Elevation."
+                     + " Выключается по Esc, правой кнопке мыши или повторному нажатию кнопки."
+                     + Environment.NewLine
+                     + "Отметка переводится в метры: модель в футах, дюймах или миллиметрах — "
+                     + "результат один."
             });
 
             panel.Children.Add(new Border
@@ -123,16 +130,8 @@ namespace NavisElevation.Navis.Views
 
             panel.Children.Add(new TextBlock
             {
-                Text = "Это окно — дымовой тест."
-            });
-
-            panel.Children.Add(new TextBlock
-            {
-                Margin = new Thickness(0, 6, 0, 0),
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55)),
-                Text = "Оно доказывает, что WPF-окно открывается поверх Navisworks из плагина. "
-                       + "Дальше здесь появятся калибровка отметки и проверка обновлений."
+                Text = "Версия " + CurrentVersion(),
+                Foreground = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55))
             });
 
             var close = new Button
@@ -150,11 +149,33 @@ namespace NavisElevation.Navis.Views
         }
 
         /// <summary>Версия плагина из метаданных сборки.</summary>
+        /// <remarks>
+        /// Берётся <c>InformationalVersion</c> и от неё отрезается всё после знака «+».
+        /// Сборка SDK дописывает туда хеш коммита, а пользователю нужна чистая версия -
+        /// такая же, как в <c>Version.txt</c>. Если атрибута нет, берётся
+        /// <c>AssemblyVersion</c>.
+        /// </remarks>
         private static string CurrentVersion()
         {
             try
             {
-                AssemblyName name = typeof(SettingsView).Assembly.GetName();
+                Assembly assembly = typeof(SettingsView).Assembly;
+
+                var informational = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+                if (informational != null && !string.IsNullOrWhiteSpace(informational.InformationalVersion))
+                {
+                    string version = informational.InformationalVersion;
+                    int plus = version.IndexOf('+');
+
+                    if (plus > 0)
+                    {
+                        version = version.Substring(0, plus);
+                    }
+
+                    return version;
+                }
+
+                AssemblyName name = assembly.GetName();
                 return name.Version == null ? "неизвестна" : name.Version.ToString();
             }
             catch (Exception)
